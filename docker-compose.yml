@@ -1,0 +1,22 @@
+﻿services:
+  db:
+    image: postgis/postgis:16-3.4
+    container_name: rafaela_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: rafaela
+      POSTGRES_PASSWORD: rafaela
+      POSTGRES_DB: rafaela
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rafaela -d rafaela"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:
