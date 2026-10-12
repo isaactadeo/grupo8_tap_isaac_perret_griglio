@@ -16,6 +16,12 @@ export default function PaginaInicio(): React.JSX.Element {
         </Link>
         <nav className="flex items-center gap-4">
           <Link
+            href="/autos/publicar"
+            className="text-sm font-medium text-zinc-700 hover:text-teal-800"
+          >
+            Publicar auto
+          </Link>
+          <Link
             href="/servicios"
             className="text-sm font-medium text-zinc-700 hover:text-teal-800"
           >
@@ -58,12 +64,17 @@ export default function PaginaInicio(): React.JSX.Element {
           Compra y vende autos en Rafaela.
         </h1>
         <p className="mt-5 max-w-xl text-lg leading-8 text-zinc-600">
-          Crea una cuenta para publicar tus autos y servicios. Muy pronto vas a
-          poder explorar todas las publicaciones desde aqui.
+          Publica tu auto o encuentra servicios vehiculares en Rafaela.
         </p>
         <Link
-          href="/servicios"
+          href="/autos/publicar"
           className="mt-8 w-fit rounded-lg bg-teal-800 px-5 py-3 text-sm font-semibold text-white hover:bg-teal-700"
+        >
+          Publicar un auto
+        </Link>
+        <Link
+          href="/servicios"
+          className="mt-3 w-fit rounded-lg border border-zinc-300 px-5 py-3 text-sm font-semibold text-zinc-800 hover:bg-white"
         >
           Explorar servicios
         </Link>

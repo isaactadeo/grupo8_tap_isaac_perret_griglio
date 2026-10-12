@@ -47,12 +47,25 @@ Los cambios se guardan primero en PostgreSQL y luego se indexan en Elasticsearch
 para la búsqueda. Un error de sincronización se informa sin ocultar que la
 publicación ya pudo haberse guardado.
 
+## Publicar autos
+
+La pagina `/autos/publicar` ofrece un formulario para usuarios autenticados.
+Solicita marca, modelo, año, descripción, precio y hasta 10 URLs HTTPS de fotos;
+la ubicación por coordenadas es opcional. Las fotos deben alojarse previamente
+en otro lugar: la carga directa de archivos no está implementada.
+
+La API valida los datos, obtiene el propietario de la sesión de Clerk, guarda
+el auto en PostgreSQL y después lo indexa en Elasticsearch. Si la indexación
+falla, el formulario informa que el auto quedó guardado pero la búsqueda no se
+sincronizó.
+
 ## Estado de otras funcionalidades
 
 - Las APIs de autos y servicios, autenticación con Clerk y búsqueda con
   Elasticsearch forman parte del proyecto.
 - El mapa y los flujos de búsqueda y publicación de servicios están en
   `/servicios`.
-- La interfaz completa de búsqueda y publicación de autos sigue pendiente.
+- El formulario autenticado de publicación de autos está en `/autos/publicar`;
+  la interfaz de búsqueda de autos sigue pendiente.
 - La aplicación web dentro de Docker y el despliegue en la nube siguen
   pendientes.
