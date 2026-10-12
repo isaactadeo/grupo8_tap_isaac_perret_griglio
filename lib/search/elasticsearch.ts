@@ -312,54 +312,56 @@ export async function buscarPublicaciones(
 
   await asegurarIndiceMarketplace();
 
-  const must: estypes.QueryDslQueryContainer[] = [
-    {
-      bool: {
-        should: [
-          {
-            multi_match: {
-              query: filters.query,
-              fields: ["title^6", "make^4", "model^4", "category^3"],
-              type: "cross_fields",
-              operator: "and",
-            },
-          },
-          {
-            multi_match: {
-              query: filters.query,
-              fields: [
-                "title^6",
-                "make^4",
-                "model^4",
-                "category^3",
-                "description",
-              ],
-              type: "best_fields",
-              operator: "and",
-              fuzziness: "AUTO",
-              prefix_length: 2,
-              max_expansions: 25,
-            },
-          },
-          {
-            match: {
-              "title.autocomplete": {
-                query: filters.query,
-                operator: "and",
-                boost: 3,
+  const must: estypes.QueryDslQueryContainer[] = filters.query.trim()
+    ? [
+        {
+          bool: {
+            should: [
+              {
+                multi_match: {
+                  query: filters.query,
+                  fields: ["title^6", "make^4", "model^4", "category^3"],
+                  type: "cross_fields",
+                  operator: "and",
+                },
               },
-            },
+              {
+                multi_match: {
+                  query: filters.query,
+                  fields: [
+                    "title^6",
+                    "make^4",
+                    "model^4",
+                    "category^3",
+                    "description",
+                  ],
+                  type: "best_fields",
+                  operator: "and",
+                  fuzziness: "AUTO",
+                  prefix_length: 2,
+                  max_expansions: 25,
+                },
+              },
+              {
+                match: {
+                  "title.autocomplete": {
+                    query: filters.query,
+                    operator: "and",
+                    boost: 3,
+                  },
+                },
+              },
+              {
+                match_phrase: {
+                  title: { query: filters.query, boost: 8 },
+                },
+              },
+            ],
+            minimum_should_match: 1,
           },
-          {
-            match_phrase: {
-              title: { query: filters.query, boost: 8 },
-            },
-          },
-        ],
-        minimum_should_match: 1,
-      },
-    },
-  ];
+        },
+      ]
+    : [];
 
   const filter: estypes.QueryDslQueryContainer[] = [];
   if (filters.kind) {
@@ -407,7 +409,7 @@ export async function buscarPublicaciones(
     track_total_hits: MAX_RESULT_WINDOW,
     query: {
       bool: {
-        must,
+        ...(must.length > 0 ? { must } : {}),
         filter,
       },
     },

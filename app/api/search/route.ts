@@ -70,16 +70,19 @@ function leerNumeroOpcional(
 export async function GET(request: Request): Promise<Response> {
   const params = new URL(request.url).searchParams;
   const query = params.get("q")?.trim() ?? "";
-  if (query.length < 2 || query.length > 100) {
-    return Response.json(
-      { error: "La búsqueda debe tener entre 2 y 100 caracteres" },
-      { status: 400 },
-    );
-  }
 
   try {
     let kind = leerTipoPublicacion(params.get("kind"));
     const category = leerTipoServicio(params.get("category"));
+    if (
+      query.length > 100 ||
+      (query.length > 0 && query.length < 2) ||
+      (query.length === 0 && kind !== "service" && !category)
+    ) {
+      throw new SolicitudBusquedaInvalida(
+        "La búsqueda debe tener entre 2 y 100 caracteres",
+      );
+    }
 
     const minPrice = leerNumeroOpcional(params, "minPrice", { minimum: 0 });
     const maxPrice = leerNumeroOpcional(params, "maxPrice", { minimum: 0 });

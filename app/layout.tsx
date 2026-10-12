@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
+import type { ReactNode } from "react";
+import "leaflet/dist/leaflet.css";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -18,7 +20,11 @@ export const metadata: Metadata = {
   description: "Compra y venta de autos y servicios vehiculares en Rafaela.",
 };
 
-export default function DisenoRaiz({ children }: LayoutProps<"/">) {
+export default function DisenoRaiz({
+  children,
+}: {
+  children: ReactNode;
+}) {
   const contenido = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ? (
     <ClerkProvider>{children}</ClerkProvider>
   ) : (
