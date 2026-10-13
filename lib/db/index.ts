@@ -8,6 +8,8 @@ if (!connectionString) {
   throw new Error("Falta la variable de entorno DATABASE_URL");
 }
 
-const client = postgres(connectionString, { max: 1 });
+// prepare: false porque el pooler de Supabase en modo transacción (puerto
+// 6543), el recomendado para Vercel, no admite sentencias preparadas.
+const client = postgres(connectionString, { max: 1, prepare: false });
 
 export const db = drizzle(client, { schema });

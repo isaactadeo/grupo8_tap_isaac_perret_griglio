@@ -59,3 +59,12 @@ CREATE TABLE service_images (
   position integer NOT NULL DEFAULT 0,
   created_at timestamptz NOT NULL DEFAULT now()
 );
+
+-- RLS sin políticas: solo el dueño de las tablas (el usuario con el que se
+-- conecta la app) puede leerlas y escribirlas. En Supabase bloquea el acceso
+-- a estas tablas desde la Data API (REST) con las claves públicas.
+ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE cars ENABLE ROW LEVEL SECURITY;
+ALTER TABLE car_images ENABLE ROW LEVEL SECURITY;
+ALTER TABLE services ENABLE ROW LEVEL SECURITY;
+ALTER TABLE service_images ENABLE ROW LEVEL SECURITY;

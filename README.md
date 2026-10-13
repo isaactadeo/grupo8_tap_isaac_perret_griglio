@@ -50,6 +50,25 @@ ALTER TABLE cars
 El índice de Elasticsearch incorpora los campos nuevos automáticamente en la
 primera búsqueda.
 
+## Base de datos en Supabase
+
+El despliegue en Vercel está en preparación y va a usar Supabase como
+PostgreSQL/PostGIS:
+
+1. Habilitar PostGIS en Database → Extensions, dentro del schema `extensions`.
+2. Ejecutar `database/init.sql` en el SQL Editor. El script activa Row Level
+   Security sin políticas en todas las tablas: la app se conecta como dueña de
+   las tablas y no se ve afectada, pero la Data API de Supabase no puede leer
+   ni modificar los datos con las claves públicas. En la base local no cambia
+   nada. Como la app no usa la Data API, también se puede desactivar en
+   Integrations → Data API.
+3. Usar como `DATABASE_URL` la cadena del pooler en modo transacción (Connect →
+   Transaction pooler, puerto 6543) con `?sslmode=require` al final. Por ese
+   pooler, `lib/db/index.ts` crea la conexión con `prepare: false`.
+
+`next build` necesita `DATABASE_URL` porque `lib/db/index.ts` la valida al
+cargarse; `ELASTICSEARCH_URL` recién se usa en la primera búsqueda.
+
 ## Buscar autos
 
 El inicio (`/`) muestra un buscador por marca o modelo, año y presupuesto, y
@@ -122,5 +141,5 @@ se muestra en escala de grises para que resalten los marcadores.
   quedan en Vercel Blob sin limpieza automática.
 - La subida de fotos a Vercel Blob está implementada para autos y servicios. Las fotos subidas que no llegan a
   publicarse tampoco se limpian automáticamente.
-- La aplicación web dentro de Docker y el despliegue en la nube siguen
-  pendientes.
+- El despliegue en la nube (Vercel + Supabase) está en preparación. La
+  aplicación web dentro de Docker sigue pendiente.
