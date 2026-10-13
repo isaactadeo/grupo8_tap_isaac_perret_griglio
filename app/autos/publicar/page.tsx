@@ -1,5 +1,10 @@
-import Link from "next/link";
+import type { Metadata } from "next";
+import Encabezado from "@/app/_componentes/encabezado";
 import FormularioPublicarAuto from "./formulario";
+
+export const metadata: Metadata = {
+  title: "Publicar auto",
+};
 
 export default function PaginaPublicarAuto(): React.JSX.Element {
   const clerkConfigurado = Boolean(
@@ -7,44 +12,31 @@ export default function PaginaPublicarAuto(): React.JSX.Element {
   );
 
   return (
-    <main className="min-h-screen bg-zinc-50 text-zinc-950">
-      <header className="border-b border-zinc-200 bg-white">
-        <div className="mx-auto flex max-w-4xl items-center justify-between px-6 py-4">
-          <Link href="/" className="text-lg font-semibold">
-            Marketplace Rafaela
-          </Link>
-          <Link
-            href="/servicios"
-            className="text-sm font-medium text-zinc-700 hover:text-teal-800"
-          >
-            Servicios
-          </Link>
-        </div>
-      </header>
-
-      <section className="mx-auto max-w-4xl px-6 py-10">
-        <p className="text-sm font-semibold uppercase tracking-wider text-teal-700">
-          Publicar
-        </p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">
-          Publica tu auto en venta
+    <>
+      <Encabezado seccion="publicar" />
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 pt-10 pb-20 sm:px-8">
+        <h1 className="titular text-titulo">
+          Publicá tu auto
         </h1>
-        <p className="mt-3 mb-7 text-zinc-600">
-          Completa los datos del vehículo. Tu cuenta será la propietaria de la
-          publicación.
+        <p className="mt-3 mb-8 max-w-2xl text-lg text-gris">
+          Completá los datos del vehículo. La publicación queda asociada a tu
+          cuenta.
         </p>
 
         {clerkConfigurado ? (
-          <FormularioPublicarAuto />
+          <FormularioPublicarAuto
+            subidaFotosHabilitada={Boolean(process.env.BLOB_READ_WRITE_TOKEN)}
+          />
         ) : (
           <div
             role="alert"
-            className="rounded-2xl border border-amber-300 bg-amber-50 p-5 text-sm text-amber-950"
+            className="max-w-2xl rounded-xl border border-[#f1e2b3] bg-destacado-suave p-5 text-destacado"
           >
-            Configura Clerk en `.env.local` para autenticarte y publicar autos.
+            Para publicar hace falta iniciar sesión, y la autenticación todavía
+            no está configurada. Configurá Clerk en <code>.env.local</code>.
           </div>
         )}
-      </section>
-    </main>
+      </main>
+    </>
   );
 }

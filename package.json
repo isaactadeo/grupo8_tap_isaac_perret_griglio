@@ -11,6 +11,7 @@
   "dependencies": {
     "@clerk/nextjs": "^7.9.13",
     "@elastic/elasticsearch": "^8.19.2",
+    "@vercel/blob": "^2.8.0",
     "drizzle-orm": "^0.45.3",
     "leaflet": "^1.9.4",
     "next": "16.4.0",

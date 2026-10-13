@@ -64,12 +64,15 @@ export default function MapaServicios({
       })
       .catch((error: unknown) => {
         console.error("No se pudo cargar el mapa de servicios:", error);
-        setErrorMapa("No se pudo cargar el mapa. Intenta recargar la página.");
+        setErrorMapa("No se pudo cargar el mapa. Recargá la página para intentar de nuevo.");
       });
 
     return () => {
       cancelado = true;
       mapaCreado?.remove();
+      // Next oculta la página al navegar y vuelve a montar los efectos al
+      // regresar: sin esto, los marcadores se dibujarían sobre el mapa destruido.
+      setMapa(null);
     };
   }, []);
 
@@ -93,21 +96,37 @@ export default function MapaServicios({
             continue;
           }
 
-          const marcador = L.marker([
-            servicio.location.lat,
-            servicio.location.lon,
-          ]);
+          const categoria = servicio.category ?? "taller";
+          const marcador = L.marker(
+            [servicio.location.lat, servicio.location.lon],
+            {
+              icon: L.divIcon({
+                className: "",
+                html: `<span class="marcador-servicio marcador-servicio--${categoria}"></span>`,
+                iconSize: [30, 30],
+                iconAnchor: [15, 35],
+                popupAnchor: [0, -32],
+              }),
+              title: servicio.title,
+            },
+          );
           const popup = document.createElement("div");
-          popup.textContent = `${servicio.title} · ${servicio.category === "taller" ? "Taller" : "Lavadero"}`;
+          const nombre = document.createElement("strong");
+          nombre.textContent = servicio.title;
+          const tipo = document.createElement("div");
+          tipo.textContent = categoria === "taller" ? "Taller" : "Lavadero";
+          popup.append(nombre, tipo);
           marcador.bindPopup(popup).addTo(capaMarcadores);
         }
 
+        let circulo: import("leaflet").Circle | undefined;
         if (centroBusqueda) {
-          L.circle([centroBusqueda.lat, centroBusqueda.lng], {
+          circulo = L.circle([centroBusqueda.lat, centroBusqueda.lng], {
             radius: radioKm * 1000,
-            color: "#0f766e",
-            fillColor: "#14b8a6",
-            fillOpacity: 0.12,
+            color: "#111111",
+            weight: 1.5,
+            fillColor: "#111111",
+            fillOpacity: 0.05,
           }).addTo(capaMarcadores);
         }
 
@@ -124,9 +143,11 @@ export default function MapaServicios({
             .addTo(capaMarcadores);
         }
 
-        const ubicacionVista = centroBusqueda ?? ubicacionFormulario;
-        if (ubicacionVista) {
-          mapa.setView([ubicacionVista.lat, ubicacionVista.lng], 13);
+        if (circulo) {
+          // Encuadra el radio completo para que se vea hasta dónde busca.
+          mapa.fitBounds(circulo.getBounds(), { padding: [16, 16] });
+        } else if (ubicacionFormulario) {
+          mapa.setView([ubicacionFormulario.lat, ubicacionFormulario.lng], 13);
         }
       })
       .catch((error: unknown) => {
@@ -141,31 +162,42 @@ export default function MapaServicios({
   }, [centroBusqueda, items, mapa, radioKm, ubicacionFormulario]);
 
   return (
-    <div className="relative">
+    <div
+      className={`relative rounded-xl ${
+        modoSeleccion ? "mapa-eligiendo ring-2 ring-tinta" : ""
+      }`}
+    >
+      {/*
+        Leaflet agrega sus propias clases a este div: su className no debe
+        cambiar entre renders, o React las borra y el mapa se desarma.
+      */}
       <div
         ref={contenedorRef}
-        className="h-[420px] w-full rounded-xl border border-zinc-200 bg-zinc-100"
+        className="h-[26rem] w-full overflow-hidden rounded-xl border border-linea bg-hueso-hondo"
         aria-label="Mapa de servicios vehiculares en Rafaela"
       />
       {!mapa && !errorMapa ? (
-        <p className="absolute inset-x-4 top-4 rounded-lg bg-white/95 p-3 text-sm text-zinc-600 shadow">
+        <p className="absolute inset-x-4 top-4 rounded-xl bg-papel/95 p-3 text-sm text-gris shadow">
           Cargando mapa…
         </p>
       ) : null}
       {errorMapa ? (
         <p
           role="alert"
-          className="absolute inset-x-4 top-4 rounded-lg bg-white/95 p-3 text-sm text-red-700 shadow"
+          className="absolute inset-x-4 top-4 rounded-xl bg-papel/95 p-3 text-sm font-medium text-alerta shadow"
         >
           {errorMapa}
         </p>
       ) : null}
       {modoSeleccion ? (
-        <p className="pointer-events-none absolute bottom-4 left-4 rounded-lg bg-white/95 px-3 py-2 text-sm font-medium text-teal-900 shadow">
-          Haz clic en el mapa para{" "}
+        <p
+          role="status"
+          className="pointer-events-none absolute bottom-4 left-4 z-[1000] rounded-xl bg-tinta px-3.5 py-2 text-sm font-semibold text-papel shadow-lg"
+        >
+          Tocá el mapa para{" "}
           {modoSeleccion === "busqueda"
-            ? "elegir el centro de búsqueda"
-            : "marcar el servicio"}
+            ? "elegir el centro de la búsqueda"
+            : "marcar tu servicio"}
           .
         </p>
       ) : null}

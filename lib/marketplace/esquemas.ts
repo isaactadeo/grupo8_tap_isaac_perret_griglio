@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { provinciasArgentinas } from "@/lib/marketplace/provincias";
 
 const ubicacion = z
   .object({
@@ -33,6 +34,10 @@ const camposAuto = {
   description: z.string().trim().min(10).max(10_000),
   price: precio,
   photos: fotos.optional(),
+  city: z.string().trim().min(2).max(100),
+  province: z.enum(provinciasArgentinas, {
+    message: "Elegí una provincia argentina",
+  }),
   location: ubicacion.nullable().optional(),
 };
 

@@ -11,6 +11,53 @@ const MARKETPLACE_INDEX = "marketplace-listings";
 const MAX_PAGE_SIZE = 50;
 const MAX_RESULT_WINDOW = 10_000;
 
+// Mapeo alineado con MarketplaceSearchDocument (src/types/index.ts).
+const propiedadesIndice: Record<string, estypes.MappingProperty> = {
+  id: { type: "keyword" },
+  kind: { type: "keyword" },
+  userId: { type: "keyword" },
+  title: {
+    type: "text",
+    analyzer: "spanish_marketplace",
+    fields: {
+      keyword: { type: "keyword", ignore_above: 256 },
+      autocomplete: {
+        type: "text",
+        analyzer: "spanish_autocomplete_index",
+        search_analyzer: "spanish_autocomplete_search",
+        norms: false,
+      },
+    },
+  },
+  description: { type: "text", analyzer: "spanish_marketplace" },
+  make: {
+    type: "text",
+    analyzer: "spanish_marketplace",
+    fields: { keyword: { type: "keyword", ignore_above: 128 } },
+  },
+  model: {
+    type: "text",
+    analyzer: "spanish_marketplace",
+    fields: { keyword: { type: "keyword", ignore_above: 128 } },
+  },
+  category: {
+    type: "text",
+    analyzer: "spanish_marketplace",
+    fields: { keyword: { type: "keyword", ignore_above: 64 } },
+  },
+  city: {
+    type: "text",
+    analyzer: "spanish_marketplace",
+    fields: { keyword: { type: "keyword", ignore_above: 128 } },
+  },
+  province: { type: "keyword" },
+  year: { type: "integer" },
+  price: { type: "scaled_float", scaling_factor: 100 },
+  photos: { type: "keyword", index: false },
+  location: { type: "geo_point" },
+  createdAt: { type: "date" },
+};
+
 let client: Client | undefined;
 let indexInitialization: Promise<void> | undefined;
 
@@ -101,53 +148,23 @@ export async function asegurarIndiceMarketplace(): Promise<void> {
         },
         mappings: {
           dynamic: "strict",
-          properties: {
-            id: { type: "keyword" },
-            kind: { type: "keyword" },
-            userId: { type: "keyword" },
-            title: {
-              type: "text",
-              analyzer: "spanish_marketplace",
-              fields: {
-                keyword: { type: "keyword", ignore_above: 256 },
-                autocomplete: {
-                  type: "text",
-                  analyzer: "spanish_autocomplete_index",
-                  search_analyzer: "spanish_autocomplete_search",
-                  norms: false,
-                },
-              },
-            },
-            description: { type: "text", analyzer: "spanish_marketplace" },
-            make: {
-              type: "text",
-              analyzer: "spanish_marketplace",
-              fields: { keyword: { type: "keyword", ignore_above: 128 } },
-            },
-            model: {
-              type: "text",
-              analyzer: "spanish_marketplace",
-              fields: { keyword: { type: "keyword", ignore_above: 128 } },
-            },
-            category: {
-              type: "text",
-              analyzer: "spanish_marketplace",
-              fields: { keyword: { type: "keyword", ignore_above: 64 } },
-            },
-            year: { type: "integer" },
-            price: { type: "scaled_float", scaling_factor: 100 },
-            photos: { type: "keyword", index: false },
-            location: { type: "geo_point" },
-            createdAt: { type: "date" },
-          },
+          properties: propiedadesIndice,
         },
       })
       .then(() => undefined)
-      .catch((error: unknown) => {
+      .catch(async (error: unknown) => {
         if (esIndiceYaCreado(error)) {
+          // El mapeo es estricto: los campos nuevos se agregan al índice existente.
+          await obtenerCliente().indices.putMapping({
+            index: MARKETPLACE_INDEX,
+            properties: propiedadesIndice,
+          });
           return;
         }
 
+        throw error;
+      })
+      .catch((error: unknown) => {
         indexInitialization = undefined;
         throw error;
       });
@@ -187,6 +204,8 @@ export function convertirAutoADocumentoBusqueda(
     make: car.make,
     model: car.model,
     year: car.year,
+    ...(car.city ? { city: car.city } : {}),
+    ...(car.province ? { province: car.province } : {}),
   };
 }
 

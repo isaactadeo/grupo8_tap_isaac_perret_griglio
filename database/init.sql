@@ -22,6 +22,8 @@ CREATE TABLE cars (
   year integer NOT NULL,
   description text NOT NULL,
   price numeric(12, 2) NOT NULL,
+  city varchar(100),
+  province varchar(60),
   location geography(Point, 4326),
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()

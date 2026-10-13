@@ -6,7 +6,39 @@ import {
   SignUpButton,
 } from "@clerk/nextjs";
 import Link from "next/link";
-import { useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
+import { useState, type SubmitEvent } from "react";
+import TarjetaAuto from "@/app/_componentes/tarjeta-auto";
+import {
+  provinciasArgentinas,
+  type Provincia,
+} from "@/lib/marketplace/provincias";
+import SelectorFotos, {
+  crearFotosPublicadas,
+  liberarVistaPrevia,
+  type FotoCargada,
+} from "@/app/_componentes/selector-fotos";
+import type { Car } from "@/src/types";
+
+export type AutoEditable = Pick<
+  Car,
+  | "id"
+  | "title"
+  | "make"
+  | "model"
+  | "year"
+  | "description"
+  | "price"
+  | "photos"
+  | "city"
+  | "province"
+>;
+
+function esProvincia(valor: string | null): valor is Provincia {
+  return (provinciasArgentinas as readonly (string | null)[]).includes(valor);
+}
+
+const provinciaInicial: Provincia = "Santa Fe";
 
 interface RespuestaPublicacion {
   error?: string;
@@ -54,19 +86,40 @@ function leerRespuesta(datos: unknown): RespuestaPublicacion {
   return resultado;
 }
 
-export default function FormularioPublicarAuto(): React.JSX.Element {
-  const [titulo, setTitulo] = useState("");
-  const [marca, setMarca] = useState("");
-  const [modelo, setModelo] = useState("");
-  const [anio, setAnio] = useState("");
-  const [descripcion, setDescripcion] = useState("");
-  const [precio, setPrecio] = useState("");
-  const [fotos, setFotos] = useState("");
-  const [latitud, setLatitud] = useState("");
-  const [longitud, setLongitud] = useState("");
+/** Publica un auto nuevo o, con `autoExistente`, edita uno propio. */
+export default function FormularioPublicarAuto({
+  subidaFotosHabilitada,
+  autoExistente,
+}: {
+  subidaFotosHabilitada: boolean;
+  autoExistente?: AutoEditable;
+}): React.JSX.Element {
+  const router = useRouter();
+  const editando = Boolean(autoExistente);
+  const [titulo, setTitulo] = useState(autoExistente?.title ?? "");
+  const [marca, setMarca] = useState(autoExistente?.make ?? "");
+  const [modelo, setModelo] = useState(autoExistente?.model ?? "");
+  const [anio, setAnio] = useState(
+    autoExistente ? String(autoExistente.year) : "",
+  );
+  const [descripcion, setDescripcion] = useState(
+    autoExistente?.description ?? "",
+  );
+  const [precio, setPrecio] = useState(autoExistente?.price ?? "");
+  const [fotos, setFotos] = useState<FotoCargada[]>(() =>
+    crearFotosPublicadas(autoExistente?.photos ?? []),
+  );
+  const [ciudad, setCiudad] = useState(autoExistente?.city ?? "");
+  const [provincia, setProvincia] = useState<Provincia>(
+    esProvincia(autoExistente?.province ?? null)
+      ? (autoExistente?.province as Provincia)
+      : provinciaInicial,
+  );
   const [publicando, setPublicando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mensaje, setMensaje] = useState<string | null>(null);
+
+  const subiendoFotos = fotos.some((foto) => foto.estado === "subiendo");
 
   function limpiarFormulario() {
     setTitulo("");
@@ -75,82 +128,52 @@ export default function FormularioPublicarAuto(): React.JSX.Element {
     setAnio("");
     setDescripcion("");
     setPrecio("");
-    setFotos("");
-    setLatitud("");
-    setLongitud("");
+    fotos.forEach(liberarVistaPrevia);
+    setFotos([]);
+    setCiudad("");
+    setProvincia(provinciaInicial);
   }
 
-  async function publicarAuto(evento: FormEvent<HTMLFormElement>) {
+  async function publicarAuto(evento: SubmitEvent<HTMLFormElement>) {
     evento.preventDefault();
-    setPublicando(true);
     setError(null);
     setMensaje(null);
 
-    const fotosAuto = fotos
-      .split(/\r?\n/)
-      .map((url) => url.trim())
-      .filter(Boolean);
-    const tieneLatitud = latitud.trim() !== "";
-    const tieneLongitud = longitud.trim() !== "";
-
-    if (tieneLatitud !== tieneLongitud) {
-      setError("Completa ambas coordenadas o deja las dos vacías.");
-      setPublicando(false);
+    // Se calcula al enviar: leer la fecha durante el render rompe el prerender.
+    const anioMaximo = new Date().getFullYear() + 1;
+    if (Number(anio) > anioMaximo) {
+      setError(`El año no puede ser posterior a ${anioMaximo}.`);
+      return;
+    }
+    if (subiendoFotos) {
+      setError("Esperá a que terminen de subirse las fotos.");
+      return;
+    }
+    if (fotos.some((foto) => foto.estado === "error")) {
+      setError("Hay fotos que no se subieron. Reintentalas o quitalas.");
       return;
     }
 
-    if (fotosAuto.length > 10) {
-      setError("Puedes agregar un máximo de 10 fotos.");
-      setPublicando(false);
-      return;
-    }
-    if (
-      fotosAuto.some((url) => {
-        try {
-          return new URL(url).protocol !== "https:" || url.length > 2048;
-        } catch {
-          return true;
-        }
-      })
-    ) {
-      setError("Cada foto debe ser una URL válida con HTTPS (máximo 2048 caracteres).");
-      setPublicando(false);
-      return;
-    }
-
-    const ubicacion =
-      tieneLatitud && tieneLongitud
-        ? { lat: Number(latitud), lng: Number(longitud) }
-        : null;
-    if (
-      ubicacion &&
-      (!Number.isFinite(ubicacion.lat) ||
-        ubicacion.lat < -90 ||
-        ubicacion.lat > 90 ||
-        !Number.isFinite(ubicacion.lng) ||
-        ubicacion.lng < -180 ||
-        ubicacion.lng > 180)
-    ) {
-      setError("Ingresa coordenadas válidas: latitud entre -90 y 90, longitud entre -180 y 180.");
-      setPublicando(false);
-      return;
-    }
-
+    setPublicando(true);
     try {
-      const respuesta = await fetch("/api/autos", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: titulo,
-          make: marca,
-          model: modelo,
-          year: Number(anio),
-          description: descripcion,
-          price: precio,
-          photos: fotosAuto,
-          location: ubicacion,
-        }),
-      });
+      const respuesta = await fetch(
+        autoExistente ? `/api/autos/${autoExistente.id}` : "/api/autos",
+        {
+          method: autoExistente ? "PATCH" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: titulo,
+            make: marca,
+            model: modelo,
+            year: Number(anio),
+            description: descripcion,
+            price: precio,
+            photos: fotos.flatMap((foto) => (foto.url ? [foto.url] : [])),
+            city: ciudad,
+            province: provincia,
+          }),
+        },
+      );
       const datos = leerRespuesta(await respuesta.json());
 
       if (!respuesta.ok) {
@@ -158,7 +181,9 @@ export default function FormularioPublicarAuto(): React.JSX.Element {
           setMensaje(
             `${datos.error ?? "El auto se guardó, pero no pudo agregarse a la búsqueda."} La publicación está guardada y la búsqueda todavía no está sincronizada.`,
           );
-          limpiarFormulario();
+          if (!autoExistente) {
+            limpiarFormulario();
+          }
           return;
         }
         const detalleValidacion = datos.detalles
@@ -175,15 +200,22 @@ export default function FormularioPublicarAuto(): React.JSX.Element {
         );
       }
 
+      if (autoExistente) {
+        router.push(`/autos/${autoExistente.id}`);
+        router.refresh();
+        return;
+      }
       setMensaje(
-        `Publicación creada${datos.item?.title ? `: ${datos.item.title}` : ""}.`,
+        `Auto publicado${datos.item?.title ? `: ${datos.item.title}` : ""}.`,
       );
       limpiarFormulario();
     } catch (fallo) {
       setError(
         fallo instanceof Error
           ? fallo.message
-          : "No se pudo publicar el auto.",
+          : editando
+            ? "No se pudieron guardar los cambios."
+            : "No se pudo publicar el auto.",
       );
     } finally {
       setPublicando(false);
@@ -194,19 +226,22 @@ export default function FormularioPublicarAuto(): React.JSX.Element {
     <Show
       when="signed-in"
       fallback={
-        <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-          <h2 className="text-xl font-semibold">Inicia sesión para publicar</h2>
-          <p className="mt-2 text-sm text-zinc-600">
-            Solo usuarios autenticados pueden crear publicaciones.
+        <section className="max-w-2xl rounded-xl border border-linea bg-papel p-6">
+          <h2 className="titular text-subtitulo">
+            Iniciá sesión para publicar
+          </h2>
+          <p className="mt-2 text-gris">
+            Las publicaciones quedan asociadas a una cuenta, así solo vos podés
+            editarlas o eliminarlas.
           </p>
           <div className="mt-5 flex flex-wrap gap-3">
             <SignInButton forceRedirectUrl="/autos/publicar">
-              <button className="rounded-lg bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-zinc-700">
+              <button type="button" className="boton boton-principal">
                 Iniciar sesión
               </button>
             </SignInButton>
             <SignUpButton forceRedirectUrl="/autos/publicar">
-              <button className="rounded-lg border border-zinc-300 px-4 py-2.5 text-sm font-semibold hover:bg-zinc-50">
+              <button type="button" className="boton boton-secundario">
                 Crear cuenta
               </button>
             </SignUpButton>
@@ -214,161 +249,200 @@ export default function FormularioPublicarAuto(): React.JSX.Element {
         </section>
       }
     >
-      <form
-        onSubmit={publicarAuto}
-        className="space-y-5 rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm"
-      >
-        <div className="grid gap-5 sm:grid-cols-2">
-          <label className="sm:col-span-2">
-            <span className="mb-1 block text-sm font-medium">Título</span>
-            <input
-              required
-              minLength={3}
-              maxLength={160}
-              value={titulo}
-              onChange={(evento) => setTitulo(evento.target.value)}
-              placeholder="Ej.: Toyota Corolla XEI en excelente estado"
-              className="w-full rounded-lg border border-zinc-300 px-3 py-2.5 outline-none focus:border-teal-700 focus:ring-2 focus:ring-teal-700/15"
-            />
-          </label>
-          <label>
-            <span className="mb-1 block text-sm font-medium">Marca</span>
-            <input
-              required
-              maxLength={100}
-              value={marca}
-              onChange={(evento) => setMarca(evento.target.value)}
-              className="w-full rounded-lg border border-zinc-300 px-3 py-2.5"
-            />
-          </label>
-          <label>
-            <span className="mb-1 block text-sm font-medium">Modelo</span>
-            <input
-              required
-              maxLength={100}
-              value={modelo}
-              onChange={(evento) => setModelo(evento.target.value)}
-              className="w-full rounded-lg border border-zinc-300 px-3 py-2.5"
-            />
-          </label>
-          <label>
-            <span className="mb-1 block text-sm font-medium">Año</span>
-            <input
-              required
-              type="number"
-              min="1886"
-              max={new Date().getFullYear() + 1}
-              step="1"
-              value={anio}
-              onChange={(evento) => setAnio(evento.target.value)}
-              className="w-full rounded-lg border border-zinc-300 px-3 py-2.5"
-            />
-          </label>
-          <label>
-            <span className="mb-1 block text-sm font-medium">Precio</span>
-            <input
-              required
-              type="number"
-              min="0"
-              max="9999999999.99"
-              step="0.01"
-              value={precio}
-              onChange={(evento) => setPrecio(evento.target.value)}
-              className="w-full rounded-lg border border-zinc-300 px-3 py-2.5"
-            />
-          </label>
-          <label className="sm:col-span-2">
-            <span className="mb-1 block text-sm font-medium">Descripción</span>
-            <textarea
-              required
-              minLength={10}
-              maxLength={10_000}
-              rows={5}
-              value={descripcion}
-              onChange={(evento) => setDescripcion(evento.target.value)}
-              className="w-full rounded-lg border border-zinc-300 px-3 py-2.5"
-            />
-          </label>
-          <label className="sm:col-span-2">
-            <span className="mb-1 block text-sm font-medium">
-              Fotos: URLs HTTPS, una por línea (máximo 10)
-            </span>
-            <textarea
-              value={fotos}
-              onChange={(evento) => setFotos(evento.target.value)}
-              rows={4}
-              placeholder={"https://ejemplo.com/foto-1.jpg\nhttps://ejemplo.com/foto-2.jpg"}
-              className="w-full rounded-lg border border-zinc-300 px-3 py-2.5"
-            />
-            <span className="mt-1 block text-xs text-zinc-500">
-              La subida de archivos desde tu dispositivo todavía no está
-              disponible.
-            </span>
-          </label>
-        </div>
-
-        <fieldset className="space-y-3 rounded-xl border border-zinc-200 p-4">
-          <legend className="px-1 text-sm font-medium">
-            Ubicación (opcional)
-          </legend>
-          <p className="text-xs text-zinc-500">
-            Ingresa las coordenadas del vehículo o deja ambos campos vacíos.
-          </p>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <label>
-              <span className="mb-1 block text-sm font-medium">Latitud</span>
+      <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_19rem] lg:gap-12">
+        <form
+          onSubmit={publicarAuto}
+          className="space-y-6 rounded-xl border border-linea bg-papel p-5 sm:p-7"
+        >
+          <div className="grid gap-5 sm:grid-cols-2">
+            <label className="sm:col-span-2">
+              <span className="etiqueta">Título</span>
               <input
-                type="number"
-                min="-90"
-                max="90"
-                step="any"
-                value={latitud}
-                onChange={(evento) => setLatitud(evento.target.value)}
-                className="w-full rounded-lg border border-zinc-300 px-3 py-2.5"
+                required
+                minLength={3}
+                maxLength={160}
+                value={titulo}
+                onChange={(evento) => setTitulo(evento.target.value)}
+                placeholder="Ej.: Toyota Corolla XEI, único dueño"
+                className="campo"
               />
             </label>
             <label>
-              <span className="mb-1 block text-sm font-medium">Longitud</span>
+              <span className="etiqueta">Marca</span>
               <input
+                required
+                maxLength={100}
+                value={marca}
+                onChange={(evento) => setMarca(evento.target.value)}
+                placeholder="Toyota"
+                className="campo"
+              />
+            </label>
+            <label>
+              <span className="etiqueta">Modelo</span>
+              <input
+                required
+                maxLength={100}
+                value={modelo}
+                onChange={(evento) => setModelo(evento.target.value)}
+                placeholder="Corolla"
+                className="campo"
+              />
+            </label>
+            <label>
+              <span className="etiqueta">Año</span>
+              <input
+                required
                 type="number"
-                min="-180"
-                max="180"
-                step="any"
-                value={longitud}
-                onChange={(evento) => setLongitud(evento.target.value)}
-                className="w-full rounded-lg border border-zinc-300 px-3 py-2.5"
+                inputMode="numeric"
+                min="1886"
+                step="1"
+                value={anio}
+                onChange={(evento) => setAnio(evento.target.value)}
+                className="campo"
+              />
+            </label>
+            <label>
+              <span className="etiqueta">Precio</span>
+              <input
+                required
+                type="number"
+                inputMode="decimal"
+                min="0"
+                max="9999999999.99"
+                step="0.01"
+                value={precio}
+                onChange={(evento) => setPrecio(evento.target.value)}
+                placeholder="En pesos"
+                className="campo"
+              />
+            </label>
+            <label className="sm:col-span-2">
+              <span className="etiqueta">Descripción</span>
+              <textarea
+                required
+                minLength={10}
+                maxLength={10_000}
+                rows={5}
+                value={descripcion}
+                onChange={(evento) => setDescripcion(evento.target.value)}
+                placeholder="Kilometraje, estado, service, papeles al día…"
+                className="campo"
               />
             </label>
           </div>
-        </fieldset>
 
-        {error ? (
-          <p role="alert" className="text-sm text-red-700">
-            {error}
-          </p>
-        ) : null}
-        {mensaje ? (
-          <p role="status" className="text-sm text-teal-800">
-            {mensaje}
-          </p>
-        ) : null}
+          <fieldset>
+            <legend className="etiqueta">Ubicación</legend>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label>
+                <span className="ayuda mt-0 mb-1">Ciudad</span>
+                <input
+                  required
+                  minLength={2}
+                  maxLength={100}
+                  autoComplete="address-level2"
+                  value={ciudad}
+                  onChange={(evento) => setCiudad(evento.target.value)}
+                  placeholder="Ej.: Rafaela"
+                  className="campo"
+                />
+              </label>
+              <label>
+                <span className="ayuda mt-0 mb-1">Provincia</span>
+                <select
+                  required
+                  autoComplete="address-level1"
+                  value={provincia}
+                  onChange={(evento) =>
+                    setProvincia(evento.target.value as Provincia)
+                  }
+                  className="campo"
+                >
+                  {provinciasArgentinas.map((nombre) => (
+                    <option key={nombre} value={nombre}>
+                      {nombre}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+          </fieldset>
 
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <Link
-            href="/"
-            className="text-sm font-medium text-zinc-600 hover:text-zinc-950"
+          <fieldset>
+            <legend className="etiqueta">Fotos</legend>
+            <p className="ayuda mt-0 mb-3">
+              La primera foto es la portada de la publicación.
+            </p>
+            <SelectorFotos
+              fotos={fotos}
+              onCambio={setFotos}
+              habilitado={subidaFotosHabilitada}
+              carpeta="autos"
+            />
+          </fieldset>
+
+          {error ? (
+            <p role="alert" className="font-medium text-alerta">
+              {error}
+            </p>
+          ) : null}
+          {mensaje ? (
+            <p role="status" className="font-medium text-tinta">
+              {mensaje}
+            </p>
+          ) : null}
+
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-linea pt-5">
+            <Link
+              href={autoExistente ? "/mis-publicaciones" : "/autos"}
+              className="enlace"
+            >
+              {autoExistente ? "Cancelar" : "Ver autos en venta"}
+            </Link>
+            <button
+              type="submit"
+              disabled={publicando || subiendoFotos}
+              className="boton boton-principal"
+            >
+              {publicando
+                ? editando
+                  ? "Guardando…"
+                  : "Publicando…"
+                : subiendoFotos
+                  ? "Subiendo fotos…"
+                  : editando
+                    ? "Guardar cambios"
+                    : "Publicar auto"}
+            </button>
+          </div>
+        </form>
+
+        <aside
+          aria-labelledby="titulo-vista-previa"
+          className="self-start lg:sticky lg:top-6"
+        >
+          <h2
+            id="titulo-vista-previa"
+            className="mb-4 text-[0.9375rem] font-semibold text-gris"
           >
-            Volver al inicio
-          </Link>
-          <button
-            type="submit"
-            disabled={publicando}
-            className="rounded-lg bg-teal-800 px-5 py-3 text-sm font-semibold text-white hover:bg-teal-700 disabled:cursor-wait disabled:opacity-60"
-          >
-            {publicando ? "Publicando…" : "Publicar auto"}
-          </button>
-        </div>
-      </form>
+            Así se verá en los resultados
+          </h2>
+          <TarjetaAuto
+            auto={{
+              title: titulo.trim(),
+              make: marca.trim(),
+              model: modelo.trim(),
+              year: Number(anio) || undefined,
+              price: precio,
+              foto: fotos[0]?.vistaPrevia,
+              ubicacion: ciudad.trim()
+                ? `${ciudad.trim()}, ${provincia}`
+                : undefined,
+            }}
+          />
+        </aside>
+      </div>
     </Show>
   );
 }

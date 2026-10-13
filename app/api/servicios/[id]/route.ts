@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { eliminarFotosSinUso } from "@/lib/marketplace/limpieza-fotos";
 import { obtenerUsuarioAutenticado } from "@/lib/auth/usuario";
 import {
   esRespuesta,
@@ -129,13 +130,15 @@ export async function DELETE(
       return usuario;
     }
 
-    const eliminado = await eliminarServicio(identificador.id, usuario.id);
-    if (!eliminado) {
+    const fotos = await eliminarServicio(identificador.id, usuario.id);
+    if (!fotos) {
       return Response.json(
         { error: "No se encontro el servicio" },
         { status: 404 },
       );
     }
+
+    await eliminarFotosSinUso(fotos);
 
     try {
       await eliminarPublicacion("service", identificador.id);
