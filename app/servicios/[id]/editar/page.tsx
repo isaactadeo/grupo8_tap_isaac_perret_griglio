@@ -5,7 +5,7 @@ import { Suspense } from "react";
 import { z } from "zod";
 import { obtenerIdUsuarioActual } from "@/lib/auth/usuario";
 import { obtenerServicio } from "@/lib/marketplace/repositorio";
-import FormularioEditarServicio from "./formulario";
+import FormularioServicio from "@/app/servicios/formulario-servicio";
 
 export const metadata: Metadata = {
   title: "Editar servicio",
@@ -42,9 +42,9 @@ async function EdicionServicio({
   }
 
   return (
-    <FormularioEditarServicio
+    <FormularioServicio
       subidaFotosHabilitada={Boolean(process.env.BLOB_READ_WRITE_TOKEN)}
-      servicio={{
+      servicioExistente={{
         id: servicio.id,
         title: servicio.title,
         category: servicio.category,

@@ -70,6 +70,9 @@ export default function MapaServicios({
     return () => {
       cancelado = true;
       mapaCreado?.remove();
+      // Next oculta la página al navegar y vuelve a montar los efectos al
+      // regresar: sin esto, los marcadores se dibujarían sobre el mapa destruido.
+      setMapa(null);
     };
   }, []);
 
@@ -116,13 +119,14 @@ export default function MapaServicios({
           marcador.bindPopup(popup).addTo(capaMarcadores);
         }
 
+        let circulo: import("leaflet").Circle | undefined;
         if (centroBusqueda) {
-          L.circle([centroBusqueda.lat, centroBusqueda.lng], {
+          circulo = L.circle([centroBusqueda.lat, centroBusqueda.lng], {
             radius: radioKm * 1000,
             color: "#0f3b37",
             weight: 2,
             fillColor: "#ffe44d",
-            fillOpacity: 0.18,
+            fillOpacity: 0.12,
           }).addTo(capaMarcadores);
         }
 
@@ -139,9 +143,11 @@ export default function MapaServicios({
             .addTo(capaMarcadores);
         }
 
-        const ubicacionVista = centroBusqueda ?? ubicacionFormulario;
-        if (ubicacionVista) {
-          mapa.setView([ubicacionVista.lat, ubicacionVista.lng], 13);
+        if (circulo) {
+          // Encuadra el radio completo para que se vea hasta dónde busca.
+          mapa.fitBounds(circulo.getBounds(), { padding: [16, 16] });
+        } else if (ubicacionFormulario) {
+          mapa.setView([ubicacionFormulario.lat, ubicacionFormulario.lng], 13);
         }
       })
       .catch((error: unknown) => {
@@ -156,12 +162,18 @@ export default function MapaServicios({
   }, [centroBusqueda, items, mapa, radioKm, ubicacionFormulario]);
 
   return (
-    <div className="relative">
+    <div
+      className={`relative rounded-2xl ${
+        modoSeleccion ? "mapa-eligiendo ring-3 ring-tiza" : ""
+      }`}
+    >
+      {/*
+        Leaflet agrega sus propias clases a este div: su className no debe
+        cambiar entre renders, o React las borra y el mapa se desarma.
+      */}
       <div
         ref={contenedorRef}
-        className={`h-[26rem] w-full overflow-hidden rounded-2xl border border-linea bg-hormigon-hondo ${
-          modoSeleccion ? "cursor-crosshair ring-3 ring-tiza" : ""
-        }`}
+        className="h-[26rem] w-full overflow-hidden rounded-2xl border border-linea bg-hormigon-hondo"
         aria-label="Mapa de servicios vehiculares en Rafaela"
       />
       {!mapa && !errorMapa ? (

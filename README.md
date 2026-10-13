@@ -69,10 +69,10 @@ vendedor.
 ## Servicios vehiculares
 
 La pagina `/servicios` permite buscar talleres y lavaderos por texto y tipo,
-filtrar por distancia y explorar los resultados en un mapa OpenStreetMap.
-También permite publicar un servicio autenticado con descripción, precio,
-ubicación y URLs HTTPS de fotos. La carga de imágenes desde el dispositivo no
-está implementada.
+filtrar por distancia y explorar los resultados en un mapa OpenStreetMap. El
+botón "Publicar servicio" lleva a `/servicios/publicar`, donde un usuario
+autenticado carga nombre, tipo, descripción, precio, fotos y la ubicación en el
+mapa. El mismo formulario se usa para editar en `/servicios/[id]/editar`.
 
 Los cambios se guardan primero en PostgreSQL y luego se indexan en Elasticsearch
 para la búsqueda. Un error de sincronización se informa sin ocultar que la

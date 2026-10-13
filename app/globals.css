@@ -326,4 +326,10 @@ body {
   .leaflet-container {
     font-family: var(--font-sans);
   }
+
+  /* Mientras se elige un punto, el cursor de Leaflet pasa a cruz. */
+  .mapa-eligiendo .leaflet-container,
+  .mapa-eligiendo .leaflet-interactive {
+    cursor: crosshair;
+  }
 }

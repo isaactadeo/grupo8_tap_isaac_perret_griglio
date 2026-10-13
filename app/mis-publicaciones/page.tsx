@@ -176,7 +176,7 @@ async function ListadoPublicaciones(): Promise<React.JSX.Element> {
         ) : (
           <p className="mt-3 text-niebla">
             No publicaste servicios.{" "}
-            <Link href="/servicios" className="enlace">
+            <Link href="/servicios/publicar" className="enlace">
               Publicar un servicio
             </Link>
           </p>
