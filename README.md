@@ -30,10 +30,41 @@ DATABASE_URL=postgres://USUARIO:CONTRASENA@localhost:5432/rafaela
 ELASTICSEARCH_URL=http://localhost:9200
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=
 CLERK_SECRET_KEY=
+BLOB_READ_WRITE_TOKEN=
 ```
 
-Configurar Clerk para habilitar la autenticacion y las publicaciones. Los
-archivos `.env*` no deben subirse al repositorio.
+Configurar Clerk para habilitar la autenticacion y las publicaciones. Las fotos
+de autos se suben a Vercel Blob: crear un store con acceso público en Vercel
+(Storage → Blob) y copiar su `BLOB_READ_WRITE_TOKEN`. Sin ese token se puede
+publicar, pero sin fotos. Los archivos `.env*` no deben subirse al repositorio.
+
+Si la base local se creó antes de que existieran los campos de ubicación de
+los autos, agregarlos sin perder datos:
+
+```sql
+ALTER TABLE cars
+  ADD COLUMN IF NOT EXISTS city varchar(100),
+  ADD COLUMN IF NOT EXISTS province varchar(60);
+```
+
+El índice de Elasticsearch incorpora los campos nuevos automáticamente en la
+primera búsqueda.
+
+## Buscar autos
+
+El inicio (`/`) muestra un buscador por marca o modelo, año y presupuesto, y
+los últimos autos publicados, leídos desde PostgreSQL.
+
+La página `/autos` lista los autos en venta con filtros de texto, rango de años
+y rango de precios, y paginación de 24 resultados. Los filtros viven en la URL
+(`/autos?q=hilux&minYear=2018&maxPrice=15000000`), así que una búsqueda se puede
+compartir. Los resultados vienen de `GET /api/search?kind=car`, que acepta una
+búsqueda sin texto cuando se indica `kind`.
+
+Cada auto tiene su página en `/autos/[id]`, con galería de fotos, precio, ficha
+técnica, enlace a la ubicación en OpenStreetMap y descripción. Los datos se leen
+desde PostgreSQL. Las publicaciones todavía no muestran datos de contacto del
+vendedor.
 
 ## Servicios vehiculares
 
@@ -50,14 +81,25 @@ publicación ya pudo haberse guardado.
 ## Publicar autos
 
 La pagina `/autos/publicar` ofrece un formulario para usuarios autenticados.
-Solicita marca, modelo, año, descripción, precio y hasta 10 URLs HTTPS de fotos;
-la ubicación por coordenadas es opcional. Las fotos deben alojarse previamente
-en otro lugar: la carga directa de archivos no está implementada.
+Solicita marca, modelo, año, descripción, precio, ciudad y provincia, y hasta
+10 fotos (JPG, PNG o WebP de hasta 10 MB). Las fotos se suben desde el
+navegador directamente a Vercel Blob: `POST /api/fotos` verifica la sesión de
+Clerk y emite un token de subida limitado a esos tipos y tamaños. Al publicar,
+se guardan las URLs resultantes junto con el auto.
 
 La API valida los datos, obtiene el propietario de la sesión de Clerk, guarda
 el auto en PostgreSQL y después lo indexa en Elasticsearch. Si la indexación
 falla, el formulario informa que el auto quedó guardado pero la búsqueda no se
 sincronizó.
+
+## Interfaz
+
+La identidad visual toma el lenguaje de las agencias de autos usados: el precio
+escrito a tiza sobre el parabrisas y la franja polarizada del vidrio. Los
+tokens de color y tipografía están en `app/globals.css` (bloque `@theme`), y los
+componentes compartidos en `app/_componentes/`. Las fuentes son Archivo
+(interfaz, con ancho variable para títulos condensados) y Mansalva (solo
+precios y el titular del inicio), cargadas con `next/font`.
 
 ## Estado de otras funcionalidades
 
@@ -65,7 +107,19 @@ sincronizó.
   Elasticsearch forman parte del proyecto.
 - El mapa y los flujos de búsqueda y publicación de servicios están en
   `/servicios`.
-- El formulario autenticado de publicación de autos está en `/autos/publicar`;
-  la interfaz de búsqueda de autos sigue pendiente.
+- La búsqueda de autos está en `/autos` y el detalle en `/autos/[id]`; el
+  formulario autenticado de publicación está en `/autos/publicar`.
+- Cada usuario ve sus autos y servicios en `/mis-publicaciones` y puede
+  editarlos (`/autos/[id]/editar`, `/servicios/[id]/editar`) o eliminarlos con
+  confirmación. El dueño también ve esas acciones en el detalle del auto. Las
+  páginas y la API tratan una publicación ajena como inexistente (404).
+- Al eliminar una publicación, sus fotos subidas se borran de Vercel Blob
+  después de confirmar el borrado en PostgreSQL, salvo las que use otra
+  publicación. Las URLs externas no se tocan. Si la limpieza falla, la
+  publicación igual queda eliminada y el error se registra en el servidor.
+- Contactar al vendedor sigue pendiente. Las fotos que se quitan al editar
+  quedan en Vercel Blob sin limpieza automática.
+- La subida de fotos a Vercel Blob está implementada para autos y servicios. Las fotos subidas que no llegan a
+  publicarse tampoco se limpian automáticamente.
 - La aplicación web dentro de Docker y el despliegue en la nube siguen
   pendientes.

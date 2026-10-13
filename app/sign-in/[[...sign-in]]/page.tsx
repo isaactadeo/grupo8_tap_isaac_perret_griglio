@@ -1,20 +1,23 @@
 import { SignIn } from "@clerk/nextjs";
 import { Suspense } from "react";
+import Encabezado from "@/app/_componentes/encabezado";
 
 export default function PaginaInicioSesion() {
-  if (!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) {
-    return (
-      <main className="flex min-h-screen items-center justify-center p-6">
-        <p>Configura Clerk en `.env.local` para iniciar sesion.</p>
-      </main>
-    );
-  }
-
   return (
-    <main className="flex min-h-screen items-center justify-center p-6">
-      <Suspense fallback={<p>Cargando inicio de sesion...</p>}>
-        <SignIn />
-      </Suspense>
-    </main>
+    <>
+      <Encabezado />
+      <main className="flex flex-1 items-start justify-center px-4 py-12 sm:py-16">
+        {process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ? (
+          <Suspense fallback={<p className="text-niebla">Cargando inicio de sesión…</p>}>
+            <SignIn />
+          </Suspense>
+        ) : (
+          <p className="max-w-md rounded-2xl border border-linea bg-papel p-6 text-niebla">
+            El inicio de sesión todavía no está configurado. Configurá Clerk en{" "}
+            <code>.env.local</code>.
+          </p>
+        )}
+      </main>
+    </>
   );
 }

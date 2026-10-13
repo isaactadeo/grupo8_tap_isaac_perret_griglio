@@ -2,8 +2,14 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState, type FormEvent } from "react";
+import { Show } from "@clerk/nextjs";
+import { useState, type SubmitEvent } from "react";
+import SelectorFotos, {
+  liberarVistaPrevia,
+  type FotoCargada,
+} from "@/app/_componentes/selector-fotos";
 import MapaServicios from "./mapa";
+import { formatearPrecio } from "@/lib/marketplace/formato";
 import type {
   GeoCoordinates,
   MarketplaceSearchDocument,
@@ -18,6 +24,16 @@ interface ResultadoBusquedaServicios {
 const etiquetasCategoria: Record<ServiceType, string> = {
   taller: "Taller",
   lavadero: "Lavadero",
+};
+
+const coloresCategoria: Record<ServiceType, string> = {
+  taller: "text-oxido",
+  lavadero: "text-agua",
+};
+
+const puntosCategoria: Record<ServiceType, string> = {
+  taller: "bg-oxido",
+  lavadero: "bg-agua",
 };
 
 function leerMensajeError(datos: unknown, mensajeAlternativo: string): string {
@@ -42,7 +58,11 @@ function leerUbicacion(
   return { lat: Number(latitud), lng: Number(longitud) };
 }
 
-export default function PaginaServicios(): React.JSX.Element {
+export default function PanelServicios({
+  subidaFotosHabilitada,
+}: {
+  subidaFotosHabilitada: boolean;
+}): React.JSX.Element {
   const [termino, setTermino] = useState("");
   const [categoria, setCategoria] = useState<ServiceType | "">("");
   const [usarRadio, setUsarRadio] = useState(false);
@@ -61,7 +81,7 @@ export default function PaginaServicios(): React.JSX.Element {
   const [categoriaNueva, setCategoriaNueva] = useState<ServiceType>("taller");
   const [descripcion, setDescripcion] = useState("");
   const [precio, setPrecio] = useState("");
-  const [fotos, setFotos] = useState("");
+  const [fotos, setFotos] = useState<FotoCargada[]>([]);
   const [latitud, setLatitud] = useState("");
   const [longitud, setLongitud] = useState("");
   const [publicando, setPublicando] = useState(false);
@@ -70,7 +90,7 @@ export default function PaginaServicios(): React.JSX.Element {
   );
   const [errorPublicacion, setErrorPublicacion] = useState<string | null>(null);
 
-  async function buscarServicios(evento: FormEvent<HTMLFormElement>) {
+  async function buscarServicios(evento: SubmitEvent<HTMLFormElement>) {
     evento.preventDefault();
     setBuscando(true);
     setErrorBusqueda(null);
@@ -123,17 +143,22 @@ export default function PaginaServicios(): React.JSX.Element {
     }
   }
 
-  async function publicarServicio(evento: FormEvent<HTMLFormElement>) {
+  async function publicarServicio(evento: SubmitEvent<HTMLFormElement>) {
     evento.preventDefault();
-    setPublicando(true);
     setMensajePublicacion(null);
     setErrorPublicacion(null);
+    if (fotos.some((foto) => foto.estado === "subiendo")) {
+      setErrorPublicacion("Esperá a que terminen de subirse las fotos.");
+      return;
+    }
+    if (fotos.some((foto) => foto.estado === "error")) {
+      setErrorPublicacion("Hay fotos que no se subieron. Reintentalas o quitalas.");
+      return;
+    }
+    setPublicando(true);
 
     const ubicacion = leerUbicacion(latitud, longitud);
-    const listaFotos = fotos
-      .split(/\r?\n/)
-      .map((url) => url.trim())
-      .filter(Boolean);
+    const listaFotos = fotos.flatMap((foto) => (foto.url ? [foto.url] : []));
 
     try {
       const respuesta = await fetch("/api/servicios", {
@@ -171,8 +196,9 @@ export default function PaginaServicios(): React.JSX.Element {
       setTitulo("");
       setDescripcion("");
       setPrecio("");
-      setFotos("");
-      setMensajePublicacion("Servicio publicado correctamente.");
+      fotos.forEach(liberarVistaPrevia);
+      setFotos([]);
+      setMensajePublicacion("Servicio publicado.");
       setResultado(null);
     } catch (error) {
       setErrorPublicacion(
@@ -197,123 +223,104 @@ export default function PaginaServicios(): React.JSX.Element {
   }
 
   return (
-    <main className="min-h-screen bg-zinc-50 text-zinc-950">
-      <header className="border-b border-zinc-200 bg-white">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-          <Link href="/" className="text-lg font-semibold">
-            Marketplace Rafaela
-          </Link>
-          <Link
-            href="/"
-            className="rounded-lg px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100"
+    <main className="mx-auto w-full max-w-6xl flex-1 px-4 pt-10 pb-20 sm:px-8">
+      <h1 className="condensada text-titulo font-extrabold text-vidrio">
+        Talleres y lavaderos
+      </h1>
+      <p className="mt-3 max-w-2xl text-lg text-niebla">
+        Buscá por nombre o descripción, filtrá por tipo y mirá dónde quedan en
+        el mapa de Rafaela.
+      </p>
+
+      <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-10">
+        <div className="min-w-0 space-y-6">
+          <form
+            onSubmit={buscarServicios}
+            role="search"
+            aria-label="Buscar servicios"
+            className="grid gap-4 rounded-2xl border border-linea bg-papel p-5 sm:grid-cols-2"
           >
-            Volver a inicio
-          </Link>
-        </div>
-      </header>
-
-      <div className="mx-auto max-w-7xl px-6 py-10">
-        <div className="mb-8">
-          <p className="text-sm font-semibold uppercase tracking-wider text-teal-700">
-            Servicios vehiculares
-          </p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">
-            Talleres y lavaderos en Rafaela
-          </h1>
-          <p className="mt-3 max-w-2xl text-zinc-600">
-            Busca por nombre o descripción, filtra por tipo y explora las
-            ubicaciones en el mapa.
-          </p>
-        </div>
-
-        <section className="grid gap-6 lg:grid-cols-[minmax(0,1.3fr)_minmax(320px,0.7fr)]">
-          <div className="space-y-5">
-            <form
-              onSubmit={buscarServicios}
-              className="grid gap-4 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm sm:grid-cols-2"
-            >
-              <label className="sm:col-span-2">
-                <span className="mb-1 block text-sm font-medium">
-                  Buscar por texto
+            <label className="sm:col-span-2">
+              <span className="etiqueta">Nombre o servicio</span>
+              <input
+                type="search"
+                value={termino}
+                onChange={(evento) => setTermino(evento.target.value)}
+                maxLength={100}
+                placeholder="Ej.: cambio de aceite, lavado completo"
+                className="campo"
+              />
+            </label>
+            <label>
+              <span className="etiqueta">Tipo de servicio</span>
+              <select
+                value={categoria}
+                onChange={(evento) =>
+                  setCategoria(evento.target.value as ServiceType | "")
+                }
+                className="campo"
+              >
+                <option value="">Todos</option>
+                <option value="taller">Talleres</option>
+                <option value="lavadero">Lavaderos</option>
+              </select>
+            </label>
+            <label>
+              <span className="etiqueta">Radio de búsqueda</span>
+              <select
+                value={radioKm}
+                onChange={(evento) => setRadioKm(Number(evento.target.value))}
+                disabled={!usarRadio}
+                className="campo"
+              >
+                {[5, 10, 20, 50, 100].map((distancia) => (
+                  <option key={distancia} value={distancia}>
+                    {distancia} km
+                  </option>
+                ))}
+              </select>
+              {!usarRadio ? (
+                <span className="ayuda">
+                  Elegí un punto en el mapa para activarlo.
                 </span>
-                <input
-                  value={termino}
-                  onChange={(evento) => setTermino(evento.target.value)}
-                  maxLength={100}
-                  placeholder="Ej.: cambio de aceite, lavado..."
-                  className="w-full rounded-lg border border-zinc-300 px-3 py-2.5 outline-none focus:border-teal-700 focus:ring-2 focus:ring-teal-700/15"
-                />
-              </label>
-              <label>
-                <span className="mb-1 block text-sm font-medium">
-                  Tipo de servicio
-                </span>
-                <select
-                  value={categoria}
-                  onChange={(evento) =>
-                    setCategoria(evento.target.value as ServiceType | "")
-                  }
-                  className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2.5"
-                >
-                  <option value="">Todos</option>
-                  <option value="taller">Taller</option>
-                  <option value="lavadero">Lavadero</option>
-                </select>
-              </label>
-              <label>
-                <span className="mb-1 block text-sm font-medium">
-                  Radio de búsqueda
-                </span>
-                <select
-                  value={radioKm}
-                  onChange={(evento) => setRadioKm(Number(evento.target.value))}
-                  disabled={!usarRadio}
-                  className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2.5 disabled:bg-zinc-100"
-                >
-                  {[5, 10, 20, 50, 100].map((distancia) => (
-                    <option key={distancia} value={distancia}>
-                      {distancia} km
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <div className="flex flex-wrap items-center gap-3 sm:col-span-2">
-                <button
-                  type="button"
-                  onClick={() => setModoSeleccion("busqueda")}
-                  className="rounded-lg border border-teal-700 px-4 py-2.5 text-sm font-medium text-teal-800 hover:bg-teal-50"
-                >
-                  Elegir centro en el mapa
-                </button>
-                {centroBusqueda ? (
-                  <label className="flex items-center gap-2 text-sm text-zinc-700">
-                    <input
-                      type="checkbox"
-                      checked={usarRadio}
-                      onChange={(evento) => setUsarRadio(evento.target.checked)}
-                      className="accent-teal-700"
-                    />
-                    Filtrar por cercanía
-                  </label>
-                ) : null}
-                <button
-                  type="submit"
-                  disabled={buscando}
-                  className="ml-auto rounded-lg bg-teal-800 px-5 py-2.5 text-sm font-semibold text-white hover:bg-teal-700 disabled:cursor-wait disabled:opacity-60"
-                >
-                  {buscando ? "Buscando…" : "Buscar servicios"}
-                </button>
-              </div>
-              {errorBusqueda ? (
-                <p
-                  role="alert"
-                  className="text-sm text-red-700 sm:col-span-2"
-                >
-                  {errorBusqueda}
-                </p>
               ) : null}
-            </form>
+            </label>
+            <div className="flex flex-wrap items-center gap-3 sm:col-span-2">
+              <button
+                type="button"
+                onClick={() => setModoSeleccion("busqueda")}
+                aria-pressed={modoSeleccion === "busqueda"}
+                className="boton boton-secundario"
+              >
+                Elegir punto en el mapa
+              </button>
+              {centroBusqueda ? (
+                <label className="flex items-center gap-2 text-sm font-medium">
+                  <input
+                    type="checkbox"
+                    checked={usarRadio}
+                    onChange={(evento) => setUsarRadio(evento.target.checked)}
+                    className="size-4 accent-vidrio"
+                  />
+                  Filtrar por cercanía
+                </label>
+              ) : null}
+              <button
+                type="submit"
+                disabled={buscando}
+                className="boton boton-principal w-full sm:ml-auto sm:w-auto"
+              >
+                {buscando ? "Buscando…" : "Buscar servicios"}
+              </button>
+            </div>
+            {errorBusqueda ? (
+              <p role="alert" className="text-sm font-medium text-alerta sm:col-span-2">
+                {errorBusqueda}
+              </p>
+            ) : null}
+          </form>
 
+          <div>
             <MapaServicios
               items={resultado?.items ?? []}
               centroBusqueda={usarRadio ? centroBusqueda : null}
@@ -322,182 +329,239 @@ export default function PaginaServicios(): React.JSX.Element {
               modoSeleccion={modoSeleccion}
               onSeleccionarUbicacion={seleccionarUbicacion}
             />
-
-            <section aria-live="polite" className="space-y-4">
-              {resultado ? (
-                <p className="text-sm text-zinc-600">
-                  {resultado.total}{" "}
-                  {resultado.total === 1
-                    ? "servicio encontrado"
-                    : "servicios encontrados"}
-                  {resultado.items.length < resultado.total
-                    ? ` · mostrando ${resultado.items.length}`
-                    : ""}
-                </p>
-              ) : (
-                <p className="text-sm text-zinc-600">
-                  Inicia una búsqueda para mostrar los servicios y sus
-                  ubicaciones.
-                </p>
-              )}
-              {resultado?.items.map((servicio) => (
-                <article
-                  key={`${servicio.kind}:${servicio.id}`}
-                  className="flex gap-4 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm"
-                >
-                  {servicio.photos[0] ? (
-                    <Image
-                      src={servicio.photos[0]}
-                      alt={`Foto de ${servicio.title}`}
-                      width={112}
-                      height={96}
-                      unoptimized
-                      className="h-24 w-28 shrink-0 rounded-lg object-cover"
-                    />
-                  ) : null}
-                  <div className="min-w-0">
-                    <span className="text-xs font-semibold uppercase tracking-wide text-teal-800">
-                      {servicio.category
-                        ? etiquetasCategoria[servicio.category]
-                        : "Servicio"}
-                    </span>
-                    <h2 className="mt-1 text-lg font-semibold">
-                      {servicio.title}
-                    </h2>
-                    <p className="mt-1 line-clamp-3 text-sm text-zinc-600">
-                      {servicio.description}
-                    </p>
-                    <p className="mt-2 text-sm font-medium">
-                      ${Number(servicio.price).toLocaleString("es-AR")}
-                    </p>
-                  </div>
-                </article>
-              ))}
-              {resultado && resultado.items.length === 0 ? (
-                <p className="rounded-xl border border-dashed border-zinc-300 p-6 text-center text-sm text-zinc-600">
-                  No encontramos servicios con esos filtros. Prueba con otros
-                  términos o amplía el radio.
-                </p>
-              ) : null}
-            </section>
+            <ul
+              aria-label="Referencias del mapa"
+              className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-sm text-niebla"
+            >
+              <li className="flex items-center gap-2">
+                <span className="size-3 rounded-full bg-oxido" aria-hidden="true" />
+                Talleres
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="size-3 rounded-full bg-agua" aria-hidden="true" />
+                Lavaderos
+              </li>
+              <li className="flex items-center gap-2">
+                <span
+                  className="size-3 rounded-full bg-tiza ring-2 ring-vidrio"
+                  aria-hidden="true"
+                />
+                Ubicación de tu servicio
+              </li>
+            </ul>
           </div>
 
-          <aside className="h-fit rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-            <h2 className="text-xl font-semibold">Publicar un servicio</h2>
-            <p className="mt-2 text-sm text-zinc-600">
-              Completa los datos y marca su ubicación en el mapa.{" "}
-              {process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ? (
-                <Link
-                  href="/sign-in"
-                  className="font-medium text-teal-800 underline"
-                >
-                  Inicia sesión
+          <section aria-live="polite" aria-label="Resultados">
+            {resultado ? (
+              <p className="text-lg font-semibold">
+                {resultado.total}{" "}
+                {resultado.total === 1
+                  ? "servicio encontrado"
+                  : "servicios encontrados"}
+                {resultado.items.length < resultado.total ? (
+                  <span className="font-normal text-niebla">
+                    {" "}
+                    (se muestran {resultado.items.length})
+                  </span>
+                ) : null}
+              </p>
+            ) : (
+              <p className="text-niebla">
+                Buscá para ver los servicios y sus ubicaciones en el mapa.
+              </p>
+            )}
+
+            {resultado && resultado.items.length > 0 ? (
+              <ul className="mt-4 divide-y divide-linea border-y border-linea">
+                {resultado.items.map((servicio) => (
+                  <li
+                    key={`${servicio.kind}:${servicio.id}`}
+                    className="flex gap-4 py-5"
+                  >
+                    {servicio.photos[0] ? (
+                      <Image
+                        src={servicio.photos[0]}
+                        alt={`Foto de ${servicio.title}`}
+                        width={112}
+                        height={96}
+                        unoptimized
+                        className="h-24 w-28 shrink-0 rounded-xl object-cover"
+                      />
+                    ) : null}
+                    <div className="min-w-0">
+                      <p
+                        className={`flex items-center gap-2 text-sm font-semibold ${
+                          servicio.category
+                            ? coloresCategoria[servicio.category]
+                            : "text-niebla"
+                        }`}
+                      >
+                        <span
+                          className={`size-2.5 rounded-full ${
+                            servicio.category
+                              ? puntosCategoria[servicio.category]
+                              : "bg-niebla"
+                          }`}
+                          aria-hidden="true"
+                        />
+                        {servicio.category
+                          ? etiquetasCategoria[servicio.category]
+                          : "Servicio"}
+                      </p>
+                      <h2 className="mt-1 text-lg leading-snug font-semibold">
+                        {servicio.title}
+                      </h2>
+                      <p className="mt-1 line-clamp-3 max-w-prose text-niebla">
+                        {servicio.description}
+                      </p>
+                      <p className="mt-2 text-sm">
+                        <span className="text-niebla">Precio de referencia </span>
+                        <span className="font-bold">
+                          {formatearPrecio(servicio.price)}
+                        </span>
+                      </p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+
+            {resultado && resultado.items.length === 0 ? (
+              <div className="mt-4 rounded-2xl border border-dashed border-linea p-6">
+                <p className="font-semibold">
+                  No hay servicios con esos filtros.
+                </p>
+                <p className="mt-1 text-niebla">
+                  Probá con otras palabras, cambiá el tipo o ampliá el radio.
+                </p>
+              </div>
+            ) : null}
+          </section>
+        </div>
+
+        <aside className="h-fit rounded-2xl border border-linea bg-papel p-5 sm:p-6 lg:sticky lg:top-6">
+          <h2 className="condensada text-subtitulo font-extrabold text-vidrio">
+            Publicar un servicio
+          </h2>
+          <p className="mt-2 text-sm text-niebla">
+            Completá los datos y marcá la ubicación en el mapa.{" "}
+            {process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ? (
+              <>
+                Necesitás{" "}
+                <Link href="/sign-in" className="enlace">
+                  iniciar sesión
                 </Link>
-              ) : (
-                "Configura Clerk para habilitar las publicaciones."
-              )}
-            </p>
-            <form onSubmit={publicarServicio} className="mt-5 space-y-4">
-              <label className="block">
-                <span className="mb-1 block text-sm font-medium">Nombre</span>
-                <input
-                  required
-                  minLength={3}
-                  maxLength={160}
-                  value={titulo}
-                  onChange={(evento) => setTitulo(evento.target.value)}
-                  className="w-full rounded-lg border border-zinc-300 px-3 py-2.5"
-                />
-              </label>
-              <label className="block">
-                <span className="mb-1 block text-sm font-medium">Tipo</span>
-                <select
-                  value={categoriaNueva}
-                  onChange={(evento) =>
-                    setCategoriaNueva(evento.target.value as ServiceType)
+                .
+              </>
+            ) : (
+              "Configurá Clerk para habilitar las publicaciones."
+            )}
+          </p>
+          <form onSubmit={publicarServicio} className="mt-5 space-y-4">
+            <label className="block">
+              <span className="etiqueta">Nombre</span>
+              <input
+                required
+                minLength={3}
+                maxLength={160}
+                value={titulo}
+                onChange={(evento) => setTitulo(evento.target.value)}
+                className="campo"
+              />
+            </label>
+            <label className="block">
+              <span className="etiqueta">Tipo</span>
+              <select
+                value={categoriaNueva}
+                onChange={(evento) =>
+                  setCategoriaNueva(evento.target.value as ServiceType)
+                }
+                className="campo"
+              >
+                <option value="taller">Taller</option>
+                <option value="lavadero">Lavadero</option>
+              </select>
+            </label>
+            <label className="block">
+              <span className="etiqueta">Descripción</span>
+              <textarea
+                required
+                minLength={10}
+                maxLength={10_000}
+                rows={4}
+                value={descripcion}
+                onChange={(evento) => setDescripcion(evento.target.value)}
+                className="campo"
+              />
+            </label>
+            <label className="block">
+              <span className="etiqueta">Precio de referencia</span>
+              <input
+                required
+                type="number"
+                min="0"
+                step="0.01"
+                value={precio}
+                onChange={(evento) => setPrecio(evento.target.value)}
+                className="campo"
+              />
+            </label>
+            <fieldset>
+              <legend className="etiqueta">Fotos</legend>
+              {process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ? (
+                <Show
+                  when="signed-in"
+                  fallback={
+                    <p className="ayuda mt-0">Iniciá sesión para subir fotos.</p>
                   }
-                  className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2.5"
                 >
-                  <option value="taller">Taller</option>
-                  <option value="lavadero">Lavadero</option>
-                </select>
-              </label>
-              <label className="block">
-                <span className="mb-1 block text-sm font-medium">
-                  Descripción
-                </span>
-                <textarea
-                  required
-                  minLength={10}
-                  maxLength={10_000}
-                  rows={4}
-                  value={descripcion}
-                  onChange={(evento) => setDescripcion(evento.target.value)}
-                  className="w-full rounded-lg border border-zinc-300 px-3 py-2.5"
-                />
-              </label>
-              <label className="block">
-                <span className="mb-1 block text-sm font-medium">
-                  Precio de referencia
-                </span>
-                <input
-                  required
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={precio}
-                  onChange={(evento) => setPrecio(evento.target.value)}
-                  className="w-full rounded-lg border border-zinc-300 px-3 py-2.5"
-                />
-              </label>
-              <label className="block">
-                <span className="mb-1 block text-sm font-medium">
-                  Fotos: URLs HTTPS, una por línea
-                </span>
-                <textarea
-                  value={fotos}
-                  onChange={(evento) => setFotos(evento.target.value)}
-                  rows={3}
-                  placeholder="https://..."
-                  className="w-full rounded-lg border border-zinc-300 px-3 py-2.5"
-                />
-              </label>
+                  <SelectorFotos
+                    fotos={fotos}
+                    onCambio={setFotos}
+                    habilitado={subidaFotosHabilitada}
+                    carpeta="servicios"
+                  />
+                </Show>
+              ) : (
+                <p className="ayuda mt-0">Configurá Clerk para subir fotos.</p>
+              )}
+            </fieldset>
+            <div>
               <button
                 type="button"
                 onClick={() => setModoSeleccion("publicacion")}
-                className="w-full rounded-lg border border-teal-700 px-4 py-2.5 text-sm font-medium text-teal-800 hover:bg-teal-50"
+                aria-pressed={modoSeleccion === "publicacion"}
+                className="boton boton-secundario w-full"
               >
                 Marcar ubicación en el mapa
               </button>
-              {latitud && longitud ? (
-                <p className="text-xs text-zinc-500">
-                  Ubicación: {latitud}, {longitud}
-                </p>
-              ) : (
-                <p className="text-xs text-zinc-500">
-                  La ubicación es opcional. Haz clic en el mapa para agregarla.
-                </p>
-              )}
-              {errorPublicacion ? (
-                <p role="alert" className="text-sm text-red-700">
-                  {errorPublicacion}
-                </p>
-              ) : null}
-              {mensajePublicacion ? (
-                <p role="status" className="text-sm text-teal-800">
-                  {mensajePublicacion}
-                </p>
-              ) : null}
-              <button
-                type="submit"
-                disabled={publicando}
-                className="w-full rounded-lg bg-zinc-900 px-4 py-3 text-sm font-semibold text-white hover:bg-zinc-700 disabled:cursor-wait disabled:opacity-60"
-              >
-                {publicando ? "Publicando…" : "Publicar servicio"}
-              </button>
-            </form>
-          </aside>
-        </section>
+              <p className="ayuda">
+                {latitud && longitud
+                  ? `Ubicación: ${latitud}, ${longitud}`
+                  : "Opcional. Tocá el mapa para agregarla."}
+              </p>
+            </div>
+            {errorPublicacion ? (
+              <p role="alert" className="text-sm font-medium text-alerta">
+                {errorPublicacion}
+              </p>
+            ) : null}
+            {mensajePublicacion ? (
+              <p role="status" className="text-sm font-medium text-vidrio">
+                {mensajePublicacion}
+              </p>
+            ) : null}
+            <button
+              type="submit"
+              disabled={
+                publicando || fotos.some((foto) => foto.estado === "subiendo")
+              }
+              className="boton boton-principal w-full"
+            >
+              {publicando ? "Publicando…" : "Publicar servicio"}
+            </button>
+          </form>
+        </aside>
       </div>
     </main>
   );

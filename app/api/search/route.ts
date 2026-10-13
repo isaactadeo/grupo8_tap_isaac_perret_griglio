@@ -77,7 +77,7 @@ export async function GET(request: Request): Promise<Response> {
     if (
       query.length > 100 ||
       (query.length > 0 && query.length < 2) ||
-      (query.length === 0 && kind !== "service" && !category)
+      (query.length === 0 && !kind && !category)
     ) {
       throw new SolicitudBusquedaInvalida(
         "La búsqueda debe tener entre 2 y 100 caracteres",

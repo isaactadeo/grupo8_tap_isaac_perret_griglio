@@ -1,26 +1,329 @@
 @import "tailwindcss";
 
+/*
+  Sistema "Parabrisas": el lenguaje de las agencias de autos usados, con el
+  precio escrito a tiza sobre el vidrio y la franja polarizada arriba.
+  La tiza (Mansalva) se usa solo sobre vidrio; el resto es Archivo.
+*/
+@theme {
+  --color-vidrio: #0f3b37;
+  --color-vidrio-claro: #1a524c;
+  --color-vidrio-hondo: #0a2926;
+  --color-tiza: #ffe44d;
+  --color-hormigon: #eef1ee;
+  --color-hormigon-hondo: #e1e7e3;
+  --color-papel: #ffffff;
+  --color-niebla: #52635d;
+  --color-linea: #cbd5d1;
+  --color-oxido: #b4471b;
+  --color-agua: #1f6fb2;
+  --color-alerta: #b42318;
+
+  --font-sans: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
+  --font-tiza: var(--font-mansalva), "Comic Sans MS", cursive;
+
+  --text-titulo: 2.5rem;
+  --text-titulo--line-height: 1;
+  --text-subtitulo: 1.75rem;
+  --text-subtitulo--line-height: 1.05;
+}
+
+@utility condensada {
+  font-variation-settings: "wdth" 72;
+  letter-spacing: -0.005em;
+}
+
+@utility semicondensada {
+  font-variation-settings: "wdth" 86;
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  color-scheme: light;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-hormigon);
+  color: var(--color-vidrio-hondo);
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  line-height: 1.55;
+  font-variant-numeric: tabular-nums;
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-vidrio);
+  outline-offset: 2px;
+}
+
+@layer components {
+  /* Vidrio: verde del canto del parabrisas con un reflejo diagonal. */
+  .vidrio {
+    background:
+      linear-gradient(
+        112deg,
+        transparent 58%,
+        rgb(255 255 255 / 0.06) 58%,
+        rgb(255 255 255 / 0.06) 66%,
+        transparent 66%
+      ),
+      radial-gradient(
+        120% 90% at 18% 0%,
+        var(--color-vidrio-claro) 0%,
+        var(--color-vidrio) 55%,
+        #0c312e 100%
+      );
+    color: var(--color-papel);
+  }
+
+  .vidrio :focus-visible {
+    outline-color: var(--color-tiza);
+  }
+
+  /* Franja antisolar con la banda de puntos cerámicos debajo. */
+  .franja {
+    position: absolute;
+    inset-inline: 0;
+    top: 0;
+    display: flex;
+    align-items: center;
+    min-height: 3.25rem;
+    padding: 0.35rem 1rem 0.25rem;
+    background: rgb(10 41 38 / 0.9);
+  }
+
+  .franja::after {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    top: 100%;
+    height: 0.75rem;
+    background-image: radial-gradient(
+      circle,
+      rgb(10 41 38 / 0.9) 1.5px,
+      transparent 1.9px
+    );
+    background-size: 7px 7px;
+    mask-image: linear-gradient(to bottom, black, transparent);
+  }
+
+  /* Escritura a mano con marcador de tiza sobre el vidrio. */
+  .tiza {
+    font-family: var(--font-tiza);
+    font-weight: 400;
+    color: var(--color-tiza);
+    line-height: 1;
+    letter-spacing: 0.01em;
+    font-variant-numeric: normal;
+  }
+
+  /* El parabrisas del inicio: vidrio en leve trapecio por perspectiva. */
+  .parabrisas {
+    position: relative;
+    isolation: isolate;
+    padding: 5.25rem 1.25rem 1.25rem;
+  }
+
+  .parabrisas-vidrio {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    overflow: hidden;
+    border-radius: 2.75rem 2.75rem 1.25rem 1.25rem;
+    transform: perspective(1400px) rotateX(5deg);
+    transform-origin: 50% 100%;
+  }
+
+  .parabrisas-vidrio::before {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    top: 0;
+    height: 3.5rem;
+    background: var(--color-vidrio-hondo);
+  }
+
+  .parabrisas-vidrio::after {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    top: 3.5rem;
+    height: 1rem;
+    background-image: radial-gradient(
+      circle,
+      var(--color-vidrio-hondo) 1.6px,
+      transparent 2px
+    );
+    background-size: 8px 8px;
+    mask-image: linear-gradient(to bottom, black, transparent);
+  }
+
+  @media (min-width: 48rem) {
+    .parabrisas {
+      padding: 6.5rem 3rem 2.5rem;
+    }
+  }
+
+  .tiza-escrita {
+    rotate: -2deg;
+    transform-origin: left bottom;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .tiza-escrita {
+      animation: escribir 1.1s cubic-bezier(0.55, 0, 0.3, 1) 0.2s both;
+    }
+  }
+
+  @keyframes escribir {
+    from {
+      clip-path: inset(-10% 100% -10% 0);
+    }
+    to {
+      clip-path: inset(-10% -2% -10% 0);
+    }
+  }
+
+  /* Campos de formulario */
+  .etiqueta {
+    display: block;
+    margin-bottom: 0.3rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--color-vidrio-hondo);
+  }
+
+  .ayuda {
+    display: block;
+    margin-top: 0.3rem;
+    font-size: 0.8125rem;
+    color: var(--color-niebla);
+  }
+
+  .campo {
+    width: 100%;
+    min-height: 2.875rem;
+    border: 1px solid var(--color-linea);
+    border-radius: 0.625rem;
+    background: var(--color-papel);
+    padding: 0.6rem 0.8rem;
+    color: var(--color-vidrio-hondo);
+    font: inherit;
+  }
+
+  .campo::placeholder {
+    color: #8a9893;
+  }
+
+  .campo:focus-visible {
+    outline: 3px solid rgb(15 59 55 / 0.25);
+    outline-offset: 0;
+    border-color: var(--color-vidrio);
+  }
+
+  .campo:disabled {
+    background: var(--color-hormigon);
+    color: var(--color-niebla);
+  }
+
+  /* Botones */
+  .boton {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 2.875rem;
+    border-radius: 0.625rem;
+    padding: 0.6rem 1.15rem;
+    font-weight: 700;
+    font-size: 0.9375rem;
+    line-height: 1.2;
+    text-align: center;
+    cursor: pointer;
+  }
+
+  .boton:disabled {
+    cursor: wait;
+    opacity: 0.65;
+  }
+
+  .boton-principal {
+    background: var(--color-vidrio);
+    color: var(--color-papel);
+  }
+
+  .boton-principal:hover:not(:disabled) {
+    background: var(--color-vidrio-hondo);
+  }
+
+  .boton-tiza {
+    background: var(--color-tiza);
+    color: var(--color-vidrio-hondo);
+  }
+
+  .boton-tiza:hover:not(:disabled) {
+    background: #fff07f;
+  }
+
+  .boton-secundario {
+    border: 1px solid var(--color-vidrio);
+    color: var(--color-vidrio);
+    background: transparent;
+  }
+
+  .boton-secundario:hover:not(:disabled) {
+    background: var(--color-papel);
+  }
+
+  .enlace {
+    color: var(--color-vidrio);
+    font-weight: 600;
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.2em;
+  }
+
+  .enlace:hover {
+    text-decoration-thickness: 2px;
+  }
+
+  /* Marcadores del mapa de servicios */
+  .marcador-servicio {
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border: 3px solid var(--color-papel);
+    border-radius: 50% 50% 50% 4px;
+    rotate: -45deg;
+    box-shadow: 0 2px 6px rgb(10 41 38 / 0.35);
+  }
+
+  .marcador-servicio--taller {
+    background: var(--color-oxido);
+  }
+
+  .marcador-servicio--lavadero {
+    background: var(--color-agua);
+  }
+
+  .marcador-publicacion {
+    background: transparent;
+    border: 0;
+  }
+
+  .marcador-publicacion-punto {
+    display: block;
+    width: 24px;
+    height: 24px;
+    border: 4px solid var(--color-papel);
+    border-radius: 50%;
+    background: var(--color-tiza);
+    box-shadow:
+      0 0 0 2px var(--color-vidrio),
+      0 2px 8px rgb(10 41 38 / 0.4);
+  }
+
+  .leaflet-container {
+    font-family: var(--font-sans);
+  }
 }

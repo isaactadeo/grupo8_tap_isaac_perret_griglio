@@ -27,6 +27,8 @@ interface FilaAuto {
   year: number;
   description: string;
   price: string;
+  city: string | null;
+  province: string | null;
   latitud: number | null;
   longitud: number | null;
   createdAt: Date;
@@ -55,6 +57,8 @@ const columnasAuto = {
   year: cars.year,
   description: cars.description,
   price: cars.price,
+  city: cars.city,
+  province: cars.province,
   latitud: sql<number | null>`ST_Y(${cars.location}::geometry)`,
   longitud: sql<number | null>`ST_X(${cars.location}::geometry)`,
   createdAt: cars.createdAt,
@@ -97,6 +101,8 @@ function mapearAuto(fila: FilaAuto, fotos: string[] = []): Car {
     description: fila.description,
     price: fila.price,
     photos: fotos,
+    city: fila.city,
+    province: fila.province,
     location:
       fila.latitud === null || fila.longitud === null
         ? null
@@ -217,6 +223,8 @@ export async function crearAuto(
         year: datos.year,
         description: datos.description,
         price: datos.price,
+        city: datos.city,
+        province: datos.province,
         location: crearUbicacionSql(datos.location) ?? null,
       })
       .returning(columnasAuto);
@@ -256,6 +264,8 @@ export async function actualizarAuto(
           ? { description: datos.description }
           : {}),
         ...(datos.price !== undefined ? { price: datos.price } : {}),
+        ...(datos.city !== undefined ? { city: datos.city } : {}),
+        ...(datos.province !== undefined ? { province: datos.province } : {}),
         ...(datos.location !== undefined
           ? { location: crearUbicacionSql(datos.location) }
           : {}),
@@ -293,15 +303,26 @@ export async function actualizarAuto(
   });
 }
 
+/**
+ * Elimina un auto propio y devuelve las URLs de sus fotos para limpiarlas del
+ * almacenamiento, o null si no existe o pertenece a otro usuario.
+ */
 export async function eliminarAuto(
   id: string,
   userId: string,
-): Promise<boolean> {
-  const eliminados = await db
-    .delete(cars)
-    .where(and(eq(cars.id, id), eq(cars.userId, userId)))
-    .returning({ id: cars.id });
-  return eliminados.length > 0;
+): Promise<string[] | null> {
+  return db.transaction(async (transaccion) => {
+    // Las imágenes se borran en cascada: se leen antes, en la misma transacción.
+    const fotos = await transaccion
+      .select({ url: carImages.url })
+      .from(carImages)
+      .where(eq(carImages.carId, id));
+    const eliminados = await transaccion
+      .delete(cars)
+      .where(and(eq(cars.id, id), eq(cars.userId, userId)))
+      .returning({ id: cars.id });
+    return eliminados.length > 0 ? fotos.map((foto) => foto.url) : null;
+  });
 }
 
 export async function listarServicios(
@@ -433,13 +454,67 @@ export async function actualizarServicio(
   });
 }
 
+/**
+ * Elimina un servicio propio y devuelve las URLs de sus fotos para limpiarlas
+ * del almacenamiento, o null si no existe o pertenece a otro usuario.
+ */
 export async function eliminarServicio(
   id: string,
   userId: string,
-): Promise<boolean> {
-  const eliminados = await db
-    .delete(services)
-    .where(and(eq(services.id, id), eq(services.userId, userId)))
-    .returning({ id: services.id });
-  return eliminados.length > 0;
+): Promise<string[] | null> {
+  return db.transaction(async (transaccion) => {
+    // Las imágenes se borran en cascada: se leen antes, en la misma transacción.
+    const fotos = await transaccion
+      .select({ url: serviceImages.url })
+      .from(serviceImages)
+      .where(eq(serviceImages.serviceId, id));
+    const eliminados = await transaccion
+      .delete(services)
+      .where(and(eq(services.id, id), eq(services.userId, userId)))
+      .returning({ id: services.id });
+    return eliminados.length > 0 ? fotos.map((foto) => foto.url) : null;
+  });
+}
+
+/** Devuelve las URLs que ya no usa ninguna publicación de autos ni servicios. */
+export async function filtrarFotosSinUso(urls: string[]): Promise<string[]> {
+  if (urls.length === 0) {
+    return [];
+  }
+  const [enAutos, enServicios] = await Promise.all([
+    db
+      .select({ url: carImages.url })
+      .from(carImages)
+      .where(inArray(carImages.url, urls)),
+    db
+      .select({ url: serviceImages.url })
+      .from(serviceImages)
+      .where(inArray(serviceImages.url, urls)),
+  ]);
+  const enUso = new Set([...enAutos, ...enServicios].map((fila) => fila.url));
+  return urls.filter((url) => !enUso.has(url));
+}
+
+export async function listarAutosDeUsuario(userId: string): Promise<Car[]> {
+  const filas = await db
+    .select(columnasAuto)
+    .from(cars)
+    .where(eq(cars.userId, userId))
+    .orderBy(desc(cars.createdAt));
+  const fotos = await obtenerFotosAutos(filas.map((fila) => fila.id));
+  return filas.map((fila) => mapearAuto(fila, fotos.get(fila.id) ?? []));
+}
+
+export async function listarServiciosDeUsuario(
+  userId: string,
+): Promise<Service[]> {
+  const filas = await db
+    .select(columnasServicio)
+    .from(services)
+    .where(eq(services.userId, userId))
+    .orderBy(desc(services.createdAt));
+  const fotos = await obtenerFotosServicios(filas.map((fila) => fila.id));
+  return filas.map((fila) =>
+    mapearServicio(fila, fotos.get(fila.id) ?? []),
+  );
 }

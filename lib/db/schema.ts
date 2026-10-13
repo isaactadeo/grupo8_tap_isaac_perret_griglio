@@ -49,6 +49,8 @@ export const cars = pgTable(
     year: integer("year").notNull(),
     description: text("description").notNull(),
     price: numeric("price", { precision: 12, scale: 2 }).notNull(),
+    city: varchar("city", { length: 100 }),
+    province: varchar("province", { length: 60 }),
     location: geography("location"),
     ...camposDeTiempo(),
   },

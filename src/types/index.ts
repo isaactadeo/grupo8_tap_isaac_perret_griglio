@@ -27,6 +27,9 @@ export interface Car {
   price: string;
   /** Image URLs are stored in car_images and assembled into this read model. */
   photos: string[];
+  /** Free-text city and an Argentine province; null on listings created before these fields existed. */
+  city: string | null;
+  province: string | null;
   location: GeoCoordinates | null;
   createdAt: Date;
   updatedAt: Date;
@@ -62,6 +65,8 @@ export interface MarketplaceSearchDocument {
   make?: string;
   model?: string;
   year?: number;
+  city?: string;
+  province?: string;
   category?: ServiceType;
 }
 
