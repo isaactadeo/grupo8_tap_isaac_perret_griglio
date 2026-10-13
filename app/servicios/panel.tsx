@@ -21,14 +21,9 @@ const etiquetasCategoria: Record<ServiceType, string> = {
   lavadero: "Lavadero",
 };
 
-const coloresCategoria: Record<ServiceType, string> = {
-  taller: "text-oxido",
-  lavadero: "text-agua",
-};
-
-const puntosCategoria: Record<ServiceType, string> = {
-  taller: "bg-oxido",
-  lavadero: "bg-agua",
+const insigniasCategoria: Record<ServiceType, string> = {
+  taller: "bg-taller-suave text-taller",
+  lavadero: "bg-lavadero-suave text-lavadero",
 };
 
 function leerMensajeError(datos: unknown, mensajeAlternativo: string): string {
@@ -121,10 +116,10 @@ export default function PanelServicios(): React.JSX.Element {
     <main className="mx-auto w-full max-w-6xl flex-1 px-4 pt-10 pb-20 sm:px-8">
       <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
         <div>
-          <h1 className="condensada text-titulo font-extrabold text-vidrio">
+          <h1 className="titular text-titulo">
             Talleres y lavaderos
           </h1>
-          <p className="mt-3 max-w-2xl text-lg text-niebla">
+          <p className="mt-3 max-w-2xl text-lg text-gris">
             Buscá por nombre o descripción, filtrá por tipo y mirá dónde quedan
             en el mapa de Rafaela.
           </p>
@@ -139,7 +134,7 @@ export default function PanelServicios(): React.JSX.Element {
           onSubmit={buscarServicios}
           role="search"
           aria-label="Buscar servicios"
-          className="grid h-fit gap-4 rounded-2xl border border-linea bg-papel p-5 sm:grid-cols-2 lg:sticky lg:top-6 lg:grid-cols-1"
+          className="grid h-fit gap-4 rounded-xl border border-linea bg-papel p-5 sm:grid-cols-2 lg:sticky lg:top-6 lg:grid-cols-1"
         >
           <label className="sm:col-span-2 lg:col-span-1">
             <span className="etiqueta">Nombre o servicio</span>
@@ -201,7 +196,7 @@ export default function PanelServicios(): React.JSX.Element {
                   type="checkbox"
                   checked={usarRadio}
                   onChange={(evento) => setUsarRadio(evento.target.checked)}
-                  className="size-4 accent-vidrio"
+                  className="size-4 accent-tinta"
                 />
                 Filtrar por cercanía
               </label>
@@ -236,14 +231,14 @@ export default function PanelServicios(): React.JSX.Element {
             />
             <ul
               aria-label="Referencias del mapa"
-              className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-sm text-niebla"
+              className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-sm text-gris"
             >
               <li className="flex items-center gap-2">
-                <span className="size-3 rounded-full bg-oxido" aria-hidden="true" />
+                <span className="size-3 rounded-full bg-taller" aria-hidden="true" />
                 Talleres
               </li>
               <li className="flex items-center gap-2">
-                <span className="size-3 rounded-full bg-agua" aria-hidden="true" />
+                <span className="size-3 rounded-full bg-lavadero" aria-hidden="true" />
                 Lavaderos
               </li>
             </ul>
@@ -257,14 +252,14 @@ export default function PanelServicios(): React.JSX.Element {
                   ? "servicio encontrado"
                   : "servicios encontrados"}
                 {resultado.items.length < resultado.total ? (
-                  <span className="font-normal text-niebla">
+                  <span className="font-normal text-gris">
                     {" "}
                     (se muestran {resultado.items.length})
                   </span>
                 ) : null}
               </p>
             ) : (
-              <p className="text-niebla">
+              <p className="text-gris">
                 Buscá para ver los servicios y sus ubicaciones en el mapa.
               </p>
             )}
@@ -288,20 +283,12 @@ export default function PanelServicios(): React.JSX.Element {
                     ) : null}
                     <div className="min-w-0">
                       <p
-                        className={`flex items-center gap-2 text-sm font-semibold ${
+                        className={`insignia ${
                           servicio.category
-                            ? coloresCategoria[servicio.category]
-                            : "text-niebla"
+                            ? insigniasCategoria[servicio.category]
+                            : "bg-hueso-hondo text-gris"
                         }`}
                       >
-                        <span
-                          className={`size-2.5 rounded-full ${
-                            servicio.category
-                              ? puntosCategoria[servicio.category]
-                              : "bg-niebla"
-                          }`}
-                          aria-hidden="true"
-                        />
                         {servicio.category
                           ? etiquetasCategoria[servicio.category]
                           : "Servicio"}
@@ -309,11 +296,11 @@ export default function PanelServicios(): React.JSX.Element {
                       <h2 className="mt-1 text-lg leading-snug font-semibold">
                         {servicio.title}
                       </h2>
-                      <p className="mt-1 line-clamp-3 max-w-prose text-niebla">
+                      <p className="mt-1 line-clamp-3 max-w-prose text-gris">
                         {servicio.description}
                       </p>
                       <p className="mt-2 text-sm">
-                        <span className="text-niebla">Precio de referencia </span>
+                        <span className="text-gris">Precio de referencia </span>
                         <span className="font-bold">
                           {formatearPrecio(servicio.price)}
                         </span>
@@ -325,11 +312,11 @@ export default function PanelServicios(): React.JSX.Element {
             ) : null}
 
             {resultado && resultado.items.length === 0 ? (
-              <div className="mt-4 rounded-2xl border border-dashed border-linea p-6">
+              <div className="mt-4 rounded-xl border border-dashed border-linea p-6">
                 <p className="font-semibold">
                   No hay servicios con esos filtros.
                 </p>
-                <p className="mt-1 text-niebla">
+                <p className="mt-1 text-gris">
                   Probá con otras palabras, cambiá el tipo o ampliá el radio.
                 </p>
               </div>

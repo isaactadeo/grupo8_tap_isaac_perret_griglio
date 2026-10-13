@@ -40,11 +40,11 @@ function FilaPublicacion({
 }): React.JSX.Element {
   return (
     <li className="flex flex-col gap-4 py-5 sm:flex-row sm:items-center">
-      <div className="vidrio relative aspect-[4/3] w-full shrink-0 overflow-hidden rounded-xl sm:w-36">
+      <div className="foto-vacia relative aspect-[4/3] w-full shrink-0 overflow-hidden rounded-lg border border-linea sm:w-36">
         {foto ? (
           <Image src={foto} alt="" fill unoptimized sizes="144px" className="object-cover" />
         ) : (
-          <span className="absolute inset-x-3 bottom-2 text-xs text-white/65">
+          <span className="absolute inset-x-3 bottom-2 text-xs">
             Sin fotos
           </span>
         )}
@@ -59,9 +59,9 @@ function FilaPublicacion({
             titulo
           )}
         </h3>
-        <p className="mt-0.5 text-niebla">{detalle}</p>
-        <p className="mt-1 text-sm text-niebla">
-          <span className="font-bold text-vidrio-hondo">{precio}</span>
+        <p className="mt-0.5 text-gris">{detalle}</p>
+        <p className="mt-1 text-sm text-gris">
+          <span className="precio text-carbon">{precio}</span>
           <span className="ml-3">Publicado el {formatearFecha(fecha)}</span>
         </p>
       </div>
@@ -79,11 +79,11 @@ async function ListadoPublicaciones(): Promise<React.JSX.Element> {
   const usuarioId = await obtenerIdUsuarioActual();
   if (!usuarioId) {
     return (
-      <div className="mt-8 max-w-xl rounded-2xl border border-linea bg-papel p-6">
+      <div className="mt-8 max-w-xl rounded-xl border border-linea bg-papel p-6">
         <p className="text-lg font-semibold">
           Iniciá sesión para ver tus publicaciones.
         </p>
-        <p className="mt-1 text-niebla">
+        <p className="mt-1 text-gris">
           Si ya iniciaste sesión, todavía no publicaste nada.
         </p>
         <div className="mt-5 flex flex-wrap gap-3">
@@ -108,7 +108,7 @@ async function ListadoPublicaciones(): Promise<React.JSX.Element> {
       <section aria-labelledby="titulo-mis-autos" className="mt-10">
         <h2
           id="titulo-mis-autos"
-          className="condensada text-subtitulo font-extrabold text-vidrio"
+          className="titular text-subtitulo"
         >
           Autos ({autos.length})
         </h2>
@@ -136,7 +136,7 @@ async function ListadoPublicaciones(): Promise<React.JSX.Element> {
             ))}
           </ul>
         ) : (
-          <p className="mt-3 text-niebla">
+          <p className="mt-3 text-gris">
             No publicaste autos.{" "}
             <Link href="/autos/publicar" className="enlace">
               Publicar auto
@@ -148,7 +148,7 @@ async function ListadoPublicaciones(): Promise<React.JSX.Element> {
       <section aria-labelledby="titulo-mis-servicios" className="mt-12">
         <h2
           id="titulo-mis-servicios"
-          className="condensada text-subtitulo font-extrabold text-vidrio"
+          className="titular text-subtitulo"
         >
           Servicios ({servicios.length})
         </h2>
@@ -174,7 +174,7 @@ async function ListadoPublicaciones(): Promise<React.JSX.Element> {
             ))}
           </ul>
         ) : (
-          <p className="mt-3 text-niebla">
+          <p className="mt-3 text-gris">
             No publicaste servicios.{" "}
             <Link href="/servicios/publicar" className="enlace">
               Publicar un servicio
@@ -191,10 +191,10 @@ export default function PaginaMisPublicaciones(): React.JSX.Element {
     <>
       <Encabezado seccion="cuenta" />
       <main className="mx-auto w-full max-w-4xl flex-1 px-4 pt-10 pb-20 sm:px-8">
-        <h1 className="condensada text-titulo font-extrabold text-vidrio">
+        <h1 className="titular text-titulo">
           Mis publicaciones
         </h1>
-        <Suspense fallback={<p className="mt-8 text-niebla">Cargando tus publicaciones…</p>}>
+        <Suspense fallback={<p className="mt-8 text-gris">Cargando tus publicaciones…</p>}>
           <ListadoPublicaciones />
         </Suspense>
       </main>

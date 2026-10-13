@@ -14,8 +14,26 @@ export interface DatosTarjetaAuto {
 }
 
 /**
- * Tarjeta de un auto: la foto lleva arriba la franja polarizada con el precio
- * escrito a tiza, como en el parabrisas de una agencia.
+ * Nombre del auto para la tarjeta: el título del vendedor, con marca y
+ * modelo adelante si el título no menciona el modelo.
+ */
+function nombreDelAuto(auto: DatosTarjetaAuto): string {
+  const titulo = auto.title.trim();
+  const marcaModelo = [auto.make, auto.model].filter(Boolean).join(" ").trim();
+  if (!marcaModelo) {
+    return titulo;
+  }
+  if (!titulo) {
+    return marcaModelo;
+  }
+  const mencionaModelo =
+    !auto.model || titulo.toLowerCase().includes(auto.model.toLowerCase());
+  return mencionaModelo ? titulo : `${marcaModelo} ${titulo}`;
+}
+
+/**
+ * Tarjeta de un auto: foto, debajo el nombre del auto, el precio más grande
+ * y una línea con año y ciudad.
  */
 export default function TarjetaAuto({
   auto,
@@ -27,11 +45,14 @@ export default function TarjetaAuto({
   /** Primera fila visible: la foto se carga sin esperar al scroll. */
   destacada?: boolean;
 }): React.JSX.Element {
-  const marcaModelo = [auto.make, auto.model].filter(Boolean).join(" ");
+  const nombre = nombreDelAuto(auto) || "Título de tu publicación";
+  const datos = [auto.year ? String(auto.year) : null, auto.ubicacion].filter(
+    Boolean,
+  );
 
   return (
-    <article className="group relative flex flex-col gap-2.5 has-[a:focus-visible]:outline-3 has-[a:focus-visible]:outline-offset-4 has-[a:focus-visible]:outline-vidrio rounded-[1.125rem]">
-      <div className="vidrio relative aspect-[4/3] overflow-hidden rounded-[1.125rem]">
+    <article className="aparecer group relative flex flex-col gap-3 has-[a:focus-visible]:outline-3 has-[a:focus-visible]:outline-offset-4 has-[a:focus-visible]:outline-tinta rounded-[10px]">
+      <div className="foto-vacia tarjeta-foto relative aspect-[4/3] overflow-hidden rounded-[10px] border border-linea">
         {auto.foto ? (
           <Image
             src={auto.foto}
@@ -43,41 +64,33 @@ export default function TarjetaAuto({
             className="object-cover"
           />
         ) : (
-          <p className="absolute inset-x-4 bottom-4 text-sm text-white/65">
+          <p className="absolute inset-x-4 bottom-4 text-sm text-gris">
             Sin fotos
           </p>
         )}
-        <div className="franja">
-          <p className="tiza text-[1.625rem]">
-            <span className="sr-only">Precio: </span>
-            {auto.price === "" ? "$ …" : formatearPrecio(auto.price)}
-          </p>
-        </div>
       </div>
 
       <div className="px-0.5">
-        <Encabezado className="text-[1.0625rem] leading-snug font-semibold text-vidrio-hondo">
+        <Encabezado className="line-clamp-2 text-[0.9375rem] sm:min-h-[2.75em] leading-snug text-carbon">
           {auto.id ? (
             <Link
               href={`/autos/${auto.id}`}
               className="outline-none after:absolute after:inset-0 after:content-[''] group-hover:underline group-hover:underline-offset-2"
             >
-              {auto.title}
+              {nombre}
             </Link>
           ) : (
-            auto.title || "Título de tu publicación"
+            nombre
           )}
         </Encabezado>
-        {auto.year || marcaModelo ? (
-          <p className="mt-1 flex flex-wrap gap-x-2.5 text-[0.9375rem] text-niebla">
-            {auto.year ? (
-              <span className="font-bold text-vidrio-hondo">{auto.year}</span>
-            ) : null}
-            {marcaModelo ? <span>{marcaModelo}</span> : null}
+        <p className="precio mt-1.5 text-[1.5rem] leading-tight text-tinta">
+          <span className="sr-only">Precio: </span>
+          {auto.price === "" ? "$ …" : formatearPrecio(auto.price)}
+        </p>
+        {datos.length > 0 ? (
+          <p className="mt-1.5 text-[0.8125rem] text-gris">
+            {datos.join(" | ")}
           </p>
-        ) : null}
-        {auto.ubicacion ? (
-          <p className="mt-0.5 text-sm text-niebla">{auto.ubicacion}</p>
         ) : null}
       </div>
     </article>

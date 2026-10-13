@@ -17,7 +17,7 @@ export interface ValoresBusquedaAutos {
 }
 
 /**
- * Buscador de autos. La variante "tablero" va dentro del parabrisas del
+ * Buscador de autos. La variante "tablero" se apoya sobre la foto del
  * inicio; la "lateral" acompaña los resultados con todos los filtros.
  */
 export default function FormularioBusquedaAutos({
@@ -93,7 +93,7 @@ export default function FormularioBusquedaAutos({
         method="get"
         role="search"
         onSubmit={buscar}
-        className="grid gap-4 rounded-2xl bg-papel p-4 text-vidrio-hondo shadow-[0_18px_40px_-20px_rgb(0_0_0/0.6)] sm:grid-cols-2 sm:p-5 lg:grid-cols-[1.6fr_1fr_1.2fr_auto] lg:items-end"
+        className="grid gap-4 rounded-xl border border-linea bg-papel p-4 text-carbon shadow-[0_8px_30px_rgb(0_0_0/0.04)] sm:grid-cols-2 sm:p-5 lg:grid-cols-[1.6fr_1fr_1.2fr_auto] lg:items-end"
       >
         {campoTexto}
         {campoAnioDesde}

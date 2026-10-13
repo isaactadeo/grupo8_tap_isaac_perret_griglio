@@ -23,10 +23,10 @@ export default function VistaDetalleAuto({
 
   return (
     <article>
-      <nav aria-label="Ruta de navegación" className="text-sm text-niebla">
+      <nav aria-label="Ruta de navegación" className="text-sm text-gris">
         <ol className="flex flex-wrap gap-2">
           <li>
-            <Link href="/autos" className="hover:text-vidrio hover:underline">
+            <Link href="/autos" className="hover:text-tinta hover:underline">
               Autos
             </Link>
           </li>
@@ -34,23 +34,23 @@ export default function VistaDetalleAuto({
           <li>
             <Link
               href={`/autos?q=${encodeURIComponent(auto.make)}`}
-              className="hover:text-vidrio hover:underline"
+              className="hover:text-tinta hover:underline"
             >
               {auto.make}
             </Link>
           </li>
           <li aria-hidden="true">/</li>
-          <li aria-current="page" className="text-vidrio-hondo">
+          <li aria-current="page" className="text-carbon">
             {auto.model}
           </li>
         </ol>
       </nav>
 
-      <h1 className="condensada mt-4 max-w-4xl text-[clamp(2rem,4.5vw,3rem)] leading-none font-extrabold text-vidrio">
+      <h1 className="titular mt-4 max-w-4xl text-[clamp(2rem,4.5vw,3rem)]">
         {auto.title}
       </h1>
-      <p className="mt-3 flex flex-wrap gap-x-3 text-lg text-niebla">
-        <span className="font-bold text-vidrio-hondo">{auto.year}</span>
+      <p className="mt-3 flex flex-wrap gap-x-3 text-lg text-gris">
+        <span className="precio text-carbon">{auto.year}</span>
         <span>{marcaModelo}</span>
       </p>
 
@@ -60,10 +60,9 @@ export default function VistaDetalleAuto({
         </div>
 
         <aside className="self-start lg:sticky lg:top-6 lg:col-start-2 lg:row-span-2 lg:row-start-1">
-          <div className="vidrio relative overflow-hidden rounded-[1.25rem] px-5 pt-[4.5rem] pb-7">
-            <div className="franja" aria-hidden="true" />
-            <p className="tiza -rotate-2 text-[clamp(2.5rem,6vw,3.25rem)]">
-              <span className="sr-only">Precio: </span>
+          <div className="rounded-xl border border-linea bg-papel p-6">
+            <p className="text-sm text-gris">Precio</p>
+            <p className="precio mt-1 text-[clamp(2rem,4vw,2.5rem)] leading-tight text-tinta">
               {formatearPrecio(auto.price)}
             </p>
           </div>
@@ -95,12 +94,12 @@ export default function VistaDetalleAuto({
               ["Año", String(auto.year)],
             ].map(([nombre, valor]) => (
               <div key={nombre} className="flex justify-between gap-4 py-3">
-                <dt className="text-niebla">{nombre}</dt>
+                <dt className="text-gris">{nombre}</dt>
                 <dd className="text-right font-semibold">{valor}</dd>
               </div>
             ))}
             <div className="flex justify-between gap-4 py-3">
-              <dt className="text-niebla">Ubicación</dt>
+              <dt className="text-gris">Ubicación</dt>
               <dd className="text-right font-semibold">
                 {ubicacion ?? (enlaceMapa ? null : "No indicada")}
                 {enlaceMapa ? (
@@ -116,7 +115,7 @@ export default function VistaDetalleAuto({
               </dd>
             </div>
             <div className="flex justify-between gap-4 py-3">
-              <dt className="text-niebla">Publicado</dt>
+              <dt className="text-gris">Publicado</dt>
               <dd className="text-right font-semibold">
                 {formatearFecha(auto.createdAt)}
               </dd>
@@ -130,7 +129,7 @@ export default function VistaDetalleAuto({
         >
           <h2
             id="titulo-descripcion"
-            className="condensada text-subtitulo font-extrabold text-vidrio"
+            className="titular text-subtitulo"
           >
             Descripción
           </h2>

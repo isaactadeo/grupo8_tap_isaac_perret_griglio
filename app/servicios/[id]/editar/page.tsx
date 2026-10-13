@@ -62,10 +62,10 @@ export default function PaginaEditarServicio({
 }: PropiedadesPagina): React.JSX.Element {
   return (
     <main className="mx-auto w-full max-w-6xl flex-1 px-4 pt-10 pb-20 sm:px-8">
-      <h1 className="condensada text-titulo font-extrabold text-vidrio">
+      <h1 className="titular text-titulo">
         Editar servicio
       </h1>
-      <Suspense fallback={<p className="mt-6 text-niebla">Cargando publicación…</p>}>
+      <Suspense fallback={<p className="mt-6 text-gris">Cargando publicación…</p>}>
         <EdicionServicio params={params} />
       </Suspense>
     </main>

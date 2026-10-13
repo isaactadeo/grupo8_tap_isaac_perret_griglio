@@ -94,12 +94,13 @@ sincronizó.
 
 ## Interfaz
 
-La identidad visual toma el lenguaje de las agencias de autos usados: el precio
-escrito a tiza sobre el parabrisas y la franja polarizada del vidrio. Los
-tokens de color y tipografía están en `app/globals.css` (bloque `@theme`), y los
-componentes compartidos en `app/_componentes/`. Las fuentes son Archivo
-(interfaz, con ancho variable para títulos condensados) y Mansalva (solo
-precios y el titular del inicio), cargadas con `next/font`.
+La interfaz sigue una línea minimalista: monocromo cálido (fondo hueso,
+superficies blancas, bordes de 1px), botones negros y color solo con
+significado, en tonos pastel (talleres, lavaderos, avisos y errores). Los
+títulos usan Newsreader (serif) y la interfaz y los precios Geist, cargadas
+con `next/font`. Los tokens están en `app/globals.css`
+(bloque `@theme`) y los componentes compartidos en `app/_componentes/`. El mapa
+se muestra en escala de grises para que resalten los marcadores.
 
 ## Estado de otras funcionalidades
 

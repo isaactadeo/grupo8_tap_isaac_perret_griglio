@@ -91,7 +91,7 @@ export default function BotonEliminar({
             type="button"
             onClick={() => void eliminar()}
             disabled={eliminando}
-            className="boton min-h-9 bg-alerta px-3 py-1.5 text-sm text-papel hover:bg-[#912018]"
+            className="boton min-h-9 bg-alerta px-3 py-1.5 text-sm text-papel hover:bg-[#7d2422]"
           >
             {eliminando ? "Eliminando…" : "Sí, eliminar"}
           </button>
@@ -99,7 +99,7 @@ export default function BotonEliminar({
             type="button"
             onClick={() => setConfirmando(false)}
             disabled={eliminando}
-            className="boton min-h-9 px-3 py-1.5 text-sm text-niebla hover:text-vidrio"
+            className="boton min-h-9 px-3 py-1.5 text-sm text-gris hover:text-tinta"
           >
             Cancelar
           </button>
@@ -117,7 +117,7 @@ export default function BotonEliminar({
       {mensaje ? (
         <p
           role={mensaje.error ? "alert" : "status"}
-          className={`mt-2 text-sm ${mensaje.error ? "text-alerta" : "text-niebla"}`}
+          className={`mt-2 text-sm ${mensaje.error ? "text-alerta" : "text-gris"}`}
         >
           {mensaje.texto}
         </p>

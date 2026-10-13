@@ -187,11 +187,11 @@ export default function SelectorFotos({
         onDragLeave={() => setArrastrando(false)}
         onDrop={alSoltar}
         className={`flex flex-col items-start gap-3 rounded-xl border-2 border-dashed p-5 @md:flex-row @md:items-center ${
-          arrastrando ? "border-vidrio bg-hormigon" : "border-linea"
+          arrastrando ? "border-tinta bg-hueso" : "border-linea"
         }`}
       >
         <label
-          className={`boton boton-secundario has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-vidrio ${
+          className={`boton boton-secundario has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-tinta ${
             !habilitado || lleno ? "pointer-events-none opacity-50" : ""
           }`}
         >
@@ -205,7 +205,7 @@ export default function SelectorFotos({
             className="sr-only"
           />
         </label>
-        <p className="text-sm text-niebla">
+        <p className="text-sm text-gris">
           {habilitado
             ? lleno
               ? `Llegaste al máximo de ${maximoFotos} fotos.`
@@ -224,7 +224,7 @@ export default function SelectorFotos({
         <ul className="mt-4 grid grid-cols-2 gap-4 @lg:grid-cols-3" aria-label="Fotos elegidas">
           {fotos.map((foto, indice) => (
             <li key={foto.id}>
-              <div className="relative aspect-[4/3] overflow-hidden rounded-xl bg-hormigon-hondo">
+              <div className="relative aspect-[4/3] overflow-hidden rounded-xl bg-hueso-hondo">
                 <Image
                   src={foto.vistaPrevia}
                   alt={`Foto ${indice + 1}: ${foto.nombre}`}
@@ -233,23 +233,23 @@ export default function SelectorFotos({
                   className="object-cover"
                 />
                 {indice === 0 ? (
-                  <span className="absolute top-2 left-2 z-10 rounded-md bg-tiza px-2 py-0.5 text-xs font-bold text-vidrio-hondo">
+                  <span className="insignia absolute top-2 left-2 z-10 bg-destacado-suave text-destacado">
                     Portada
                   </span>
                 ) : null}
                 {foto.estado === "subiendo" ? (
-                  <div className="absolute inset-x-0 bottom-0 bg-vidrio-hondo/85 px-3 py-2 text-xs font-semibold text-papel">
+                  <div className="absolute inset-x-0 bottom-0 bg-carbon/80 px-3 py-2 text-xs font-semibold text-papel">
                     <span role="status">Subiendo {foto.progreso}%</span>
                     <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-white/25">
                       <div
-                        className="h-full bg-tiza"
+                        className="h-full bg-papel"
                         style={{ width: `${foto.progreso}%` }}
                       />
                     </div>
                   </div>
                 ) : null}
                 {foto.estado === "error" ? (
-                  <div className="absolute inset-0 grid place-content-center gap-2 bg-vidrio-hondo/75 p-3 text-center text-sm font-semibold text-papel">
+                  <div className="absolute inset-0 grid place-content-center gap-2 bg-carbon/70 p-3 text-center text-sm font-semibold text-papel">
                     <span role="alert">No se pudo subir</span>
                     <button
                       type="button"
@@ -266,7 +266,7 @@ export default function SelectorFotos({
                   type="button"
                   onClick={() => quitar(foto)}
                   aria-label={`Quitar ${foto.nombre}`}
-                  className="font-semibold text-niebla hover:text-alerta"
+                  className="font-semibold text-gris hover:text-alerta"
                 >
                   Quitar
                 </button>
@@ -275,7 +275,7 @@ export default function SelectorFotos({
                     type="button"
                     onClick={() => usarDePortada(foto)}
                     aria-label={`Usar ${foto.nombre} como portada`}
-                    className="font-semibold text-niebla hover:text-vidrio"
+                    className="font-semibold text-gris hover:text-tinta"
                   >
                     Usar de portada
                   </button>

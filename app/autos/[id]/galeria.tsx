@@ -14,16 +14,15 @@ export default function GaleriaFotos({
 
   if (fotos.length === 0) {
     return (
-      <div className="vidrio relative grid aspect-[4/3] place-items-center overflow-hidden rounded-[1.25rem]">
-        <div className="franja" aria-hidden="true" />
-        <p className="text-white/70">Esta publicación no tiene fotos.</p>
+      <div className="foto-vacia relative grid aspect-[4/3] place-items-center overflow-hidden rounded-xl border border-linea">
+        <p>Esta publicación no tiene fotos.</p>
       </div>
     );
   }
 
   return (
     <div>
-      <div className="vidrio relative aspect-[4/3] overflow-hidden rounded-[1.25rem]">
+      <div className="foto-vacia relative aspect-[4/3] overflow-hidden rounded-xl border border-linea">
         <Image
           src={fotos[indiceActivo]}
           alt={`Foto ${indiceActivo + 1} de ${fotos.length}: ${titulo}`}
@@ -46,7 +45,7 @@ export default function GaleriaFotos({
                 aria-label={`Ver foto ${indice + 1} de ${fotos.length}`}
                 className={`relative block aspect-square w-full overflow-hidden rounded-lg border-[3px] ${
                   indice === indiceActivo
-                    ? "border-vidrio"
+                    ? "border-tinta"
                     : "border-transparent opacity-75 hover:opacity-100"
                 }`}
               >

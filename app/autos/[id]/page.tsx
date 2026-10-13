@@ -44,11 +44,11 @@ export async function generateMetadata({
 function EsqueletoDetalle(): React.JSX.Element {
   return (
     <div aria-hidden="true" className="space-y-6">
-      <div className="h-4 w-40 rounded bg-hormigon-hondo" />
-      <div className="h-10 w-2/3 rounded bg-hormigon-hondo" />
+      <div className="h-4 w-40 rounded bg-hueso-hondo" />
+      <div className="h-10 w-2/3 rounded bg-hueso-hondo" />
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-12">
-        <div className="aspect-[4/3] rounded-[1.25rem] bg-hormigon-hondo motion-safe:animate-pulse" />
-        <div className="h-64 rounded-[1.25rem] bg-hormigon-hondo" />
+        <div className="aspect-[4/3] rounded-xl bg-hueso-hondo motion-safe:animate-pulse" />
+        <div className="h-64 rounded-xl bg-hueso-hondo" />
       </div>
     </div>
   );

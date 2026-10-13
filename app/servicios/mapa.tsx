@@ -123,10 +123,10 @@ export default function MapaServicios({
         if (centroBusqueda) {
           circulo = L.circle([centroBusqueda.lat, centroBusqueda.lng], {
             radius: radioKm * 1000,
-            color: "#0f3b37",
-            weight: 2,
-            fillColor: "#ffe44d",
-            fillOpacity: 0.12,
+            color: "#111111",
+            weight: 1.5,
+            fillColor: "#111111",
+            fillOpacity: 0.05,
           }).addTo(capaMarcadores);
         }
 
@@ -163,8 +163,8 @@ export default function MapaServicios({
 
   return (
     <div
-      className={`relative rounded-2xl ${
-        modoSeleccion ? "mapa-eligiendo ring-3 ring-tiza" : ""
+      className={`relative rounded-xl ${
+        modoSeleccion ? "mapa-eligiendo ring-2 ring-tinta" : ""
       }`}
     >
       {/*
@@ -173,11 +173,11 @@ export default function MapaServicios({
       */}
       <div
         ref={contenedorRef}
-        className="h-[26rem] w-full overflow-hidden rounded-2xl border border-linea bg-hormigon-hondo"
+        className="h-[26rem] w-full overflow-hidden rounded-xl border border-linea bg-hueso-hondo"
         aria-label="Mapa de servicios vehiculares en Rafaela"
       />
       {!mapa && !errorMapa ? (
-        <p className="absolute inset-x-4 top-4 rounded-xl bg-papel/95 p-3 text-sm text-niebla shadow">
+        <p className="absolute inset-x-4 top-4 rounded-xl bg-papel/95 p-3 text-sm text-gris shadow">
           Cargando mapa…
         </p>
       ) : null}
@@ -192,7 +192,7 @@ export default function MapaServicios({
       {modoSeleccion ? (
         <p
           role="status"
-          className="pointer-events-none absolute bottom-4 left-4 z-[1000] rounded-xl bg-vidrio px-3.5 py-2 text-sm font-semibold text-papel shadow-lg"
+          className="pointer-events-none absolute bottom-4 left-4 z-[1000] rounded-xl bg-tinta px-3.5 py-2 text-sm font-semibold text-papel shadow-lg"
         >
           Tocá el mapa para{" "}
           {modoSeleccion === "busqueda"

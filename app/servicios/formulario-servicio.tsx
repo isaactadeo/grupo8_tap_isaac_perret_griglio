@@ -145,11 +145,11 @@ export default function FormularioServicio({
     <Show
       when="signed-in"
       fallback={
-        <section className="mt-8 max-w-2xl rounded-2xl border border-linea bg-papel p-6">
-          <h2 className="condensada text-subtitulo font-extrabold text-vidrio">
+        <section className="mt-8 max-w-2xl rounded-xl border border-linea bg-papel p-6">
+          <h2 className="titular text-subtitulo">
             Iniciá sesión para publicar
           </h2>
-          <p className="mt-2 text-niebla">
+          <p className="mt-2 text-gris">
             Los servicios quedan asociados a una cuenta, así solo vos podés
             editarlos o eliminarlos.
           </p>
@@ -170,7 +170,7 @@ export default function FormularioServicio({
     >
       <form
         onSubmit={guardar}
-        className="mt-8 max-w-3xl space-y-6 rounded-2xl border border-linea bg-papel p-5 sm:p-7"
+        className="mt-8 max-w-3xl space-y-6 rounded-xl border border-linea bg-papel p-5 sm:p-7"
       >
         <div className="grid gap-5 sm:grid-cols-2">
           <label className="sm:col-span-2">
@@ -248,7 +248,7 @@ export default function FormularioServicio({
               <button
                 type="button"
                 onClick={() => setUbicacion(null)}
-                className="text-sm font-semibold text-niebla hover:text-alerta"
+                className="text-sm font-semibold text-gris hover:text-alerta"
               >
                 Quitar ubicación
               </button>
@@ -277,7 +277,7 @@ export default function FormularioServicio({
           </p>
         ) : null}
         {mensaje ? (
-          <p role="status" className="font-medium text-vidrio">
+          <p role="status" className="font-medium text-tinta">
             {mensaje}{" "}
             {!editando ? (
               <>

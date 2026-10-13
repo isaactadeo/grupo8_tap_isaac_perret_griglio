@@ -43,7 +43,7 @@ async function EdicionAuto({
 
   return (
     <>
-      <p className="mt-3 mb-8 max-w-2xl text-lg text-niebla">
+      <p className="mt-3 mb-8 max-w-2xl text-lg text-gris">
         Los cambios se ven en la publicación apenas los guardás.
       </p>
       <FormularioPublicarAuto
@@ -70,10 +70,10 @@ export default function PaginaEditarAuto({
 }: PropiedadesPagina): React.JSX.Element {
   return (
     <>
-      <h1 className="condensada text-titulo font-extrabold text-vidrio">
+      <h1 className="titular text-titulo">
         Editar auto
       </h1>
-      <Suspense fallback={<p className="mt-6 text-niebla">Cargando publicación…</p>}>
+      <Suspense fallback={<p className="mt-6 text-gris">Cargando publicación…</p>}>
         <EdicionAuto params={params} />
       </Suspense>
     </>

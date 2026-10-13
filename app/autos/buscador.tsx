@@ -90,7 +90,7 @@ function Paginacion({
       ) : (
         <span className="min-w-28" />
       )}
-      <p className="text-sm text-niebla">
+      <p className="text-sm text-gris">
         Página {pagina} de {totalPaginas}
       </p>
       {pagina < totalPaginas ? (
@@ -193,7 +193,7 @@ export default function BuscadorAutos(): React.JSX.Element {
         </button>
         <div
           id="panel-filtros"
-          className={`${filtrosAbiertos ? "mt-3 block" : "hidden"} rounded-2xl border border-linea bg-papel p-5 lg:mt-0 lg:block`}
+          className={`${filtrosAbiertos ? "mt-3 block" : "hidden"} rounded-xl border border-linea bg-papel p-5 lg:mt-0 lg:block`}
         >
           <FormularioBusquedaAutos
             key={textoFiltros}
@@ -213,15 +213,15 @@ export default function BuscadorAutos(): React.JSX.Element {
         <p
           id="resumen-resultados"
           role="status"
-          className="mb-6 text-lg font-semibold text-vidrio-hondo"
+          className="mb-6 text-lg font-semibold text-carbon"
         >
           {resumen}
         </p>
 
         {estado && "error" in estado && !cargando ? (
-          <div role="alert" className="rounded-2xl border border-alerta/30 bg-papel p-6">
+          <div role="alert" className="rounded-xl border border-alerta/30 bg-papel p-6">
             <p className="font-semibold text-alerta">{estado.error}</p>
-            <p className="mt-1 text-niebla">
+            <p className="mt-1 text-gris">
               Revisá los filtros o volvé a intentar en unos segundos.
             </p>
             <button
@@ -265,22 +265,22 @@ export default function BuscadorAutos(): React.JSX.Element {
           <div className="grid gap-x-5 gap-y-9 sm:grid-cols-2 xl:grid-cols-3" aria-hidden="true">
             {Array.from({ length: 6 }, (_, indice) => (
               <div key={indice} className="space-y-3">
-                <div className="aspect-[4/3] rounded-[1.125rem] bg-hormigon-hondo motion-safe:animate-pulse" />
-                <div className="h-4 w-3/4 rounded bg-hormigon-hondo" />
-                <div className="h-4 w-1/3 rounded bg-hormigon-hondo" />
+                <div className="aspect-[4/3] rounded-[1.125rem] bg-hueso-hondo motion-safe:animate-pulse" />
+                <div className="h-4 w-3/4 rounded bg-hueso-hondo" />
+                <div className="h-4 w-1/3 rounded bg-hueso-hondo" />
               </div>
             ))}
           </div>
         ) : null}
 
         {resultado && resultado.items.length === 0 && !cargando ? (
-          <div className="rounded-2xl border border-dashed border-linea p-8">
+          <div className="rounded-xl border border-dashed border-linea p-8">
             <p className="text-lg font-semibold">
               {pagina > 1
                 ? "No hay más autos en esta página."
                 : "No hay autos con esos filtros."}
             </p>
-            <p className="mt-1 max-w-prose text-niebla">
+            <p className="mt-1 max-w-prose text-gris">
               Probá con otra marca o modelo, ampliá el rango de años o subí el
               presupuesto.
             </p>

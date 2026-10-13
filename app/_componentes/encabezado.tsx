@@ -17,7 +17,7 @@ function Logo(): React.JSX.Element {
         stroke="currentColor"
         strokeWidth="3.5"
       />
-      <path d="M17 0.5v6" stroke="#ffe44d" strokeWidth="3" />
+      <path d="M17 0.5v6" stroke="#b8b7b2" strokeWidth="3" />
     </svg>
   );
 }
@@ -28,7 +28,7 @@ function CuentaUsuario({
   activa: boolean;
 }): React.JSX.Element {
   const clasesIngresar =
-    "rounded-lg px-3 py-2 text-sm font-semibold text-vidrio hover:bg-papel";
+    "rounded-md px-3 py-2 text-sm font-medium text-tinta hover:bg-hueso";
 
   if (!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) {
     return (
@@ -74,10 +74,10 @@ function EnlaceSeccion({
     <Link
       href={href}
       aria-current={activo ? "page" : undefined}
-      className={`border-b-[3px] py-1 text-[0.9375rem] font-semibold ${
+      className={`border-b-2 py-1 text-[0.9375rem] font-medium ${
         activo
-          ? "border-vidrio text-vidrio"
-          : "border-transparent text-niebla hover:text-vidrio"
+          ? "border-tinta text-tinta"
+          : "border-transparent text-gris hover:text-tinta"
       }`}
     >
       {children}
@@ -91,15 +91,15 @@ export default function Encabezado({
   seccion?: Seccion;
 }): React.JSX.Element {
   return (
-    <header className="border-b border-linea bg-hormigon">
+    <header className="border-b border-linea bg-papel">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-8 gap-y-2 px-4 py-3 sm:px-8">
         <Link
           href="/"
-          className="flex items-center gap-2.5 text-vidrio"
+          className="flex items-center gap-2.5 text-tinta"
           aria-label="Marketplace Rafaela, inicio"
         >
           <Logo />
-          <span className="condensada text-[1.375rem] font-extrabold leading-none">
+          <span className="titular text-[1.375rem] leading-none">
             Marketplace Rafaela
           </span>
         </Link>

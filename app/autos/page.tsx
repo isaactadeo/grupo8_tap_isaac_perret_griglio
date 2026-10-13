@@ -14,7 +14,7 @@ export default function PaginaAutos(): React.JSX.Element {
     <>
       <Encabezado seccion="autos" />
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 pt-10 pb-20 sm:px-8">
-        <h1 className="condensada text-titulo font-extrabold text-vidrio">
+        <h1 className="titular text-titulo">
           Autos en venta
         </h1>
         <Suspense

@@ -226,11 +226,11 @@ export default function FormularioPublicarAuto({
     <Show
       when="signed-in"
       fallback={
-        <section className="max-w-2xl rounded-2xl border border-linea bg-papel p-6">
-          <h2 className="condensada text-subtitulo font-extrabold text-vidrio">
+        <section className="max-w-2xl rounded-xl border border-linea bg-papel p-6">
+          <h2 className="titular text-subtitulo">
             Iniciá sesión para publicar
           </h2>
-          <p className="mt-2 text-niebla">
+          <p className="mt-2 text-gris">
             Las publicaciones quedan asociadas a una cuenta, así solo vos podés
             editarlas o eliminarlas.
           </p>
@@ -252,7 +252,7 @@ export default function FormularioPublicarAuto({
       <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_19rem] lg:gap-12">
         <form
           onSubmit={publicarAuto}
-          className="space-y-6 rounded-2xl border border-linea bg-papel p-5 sm:p-7"
+          className="space-y-6 rounded-xl border border-linea bg-papel p-5 sm:p-7"
         >
           <div className="grid gap-5 sm:grid-cols-2">
             <label className="sm:col-span-2">
@@ -388,7 +388,7 @@ export default function FormularioPublicarAuto({
             </p>
           ) : null}
           {mensaje ? (
-            <p role="status" className="font-medium text-vidrio">
+            <p role="status" className="font-medium text-tinta">
               {mensaje}
             </p>
           ) : null}
@@ -424,7 +424,7 @@ export default function FormularioPublicarAuto({
         >
           <h2
             id="titulo-vista-previa"
-            className="mb-4 text-[0.9375rem] font-semibold text-niebla"
+            className="mb-4 text-[0.9375rem] font-semibold text-gris"
           >
             Así se verá en los resultados
           </h2>

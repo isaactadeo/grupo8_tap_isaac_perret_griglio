@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
@@ -9,6 +10,7 @@ import {
   marcasFrecuentes,
 } from "@/lib/marketplace/formato";
 import type { Car } from "@/src/types";
+import fotoInicio from "@/public/imagenes/inicio-auto.jpg";
 
 const clasesGrilla =
   "grid gap-x-5 gap-y-8 sm:grid-cols-2 lg:grid-cols-4";
@@ -18,9 +20,9 @@ function EsqueletoTarjetas(): React.JSX.Element {
     <div className={clasesGrilla} aria-hidden="true">
       {Array.from({ length: 4 }, (_, indice) => (
         <div key={indice} className="space-y-3">
-          <div className="aspect-[4/3] rounded-[1.125rem] bg-hormigon-hondo motion-safe:animate-pulse" />
-          <div className="h-4 w-3/4 rounded bg-hormigon-hondo" />
-          <div className="h-4 w-1/3 rounded bg-hormigon-hondo" />
+          <div className="aspect-[4/3] rounded-[1.125rem] bg-hueso-hondo motion-safe:animate-pulse" />
+          <div className="h-4 w-3/4 rounded bg-hueso-hondo" />
+          <div className="h-4 w-1/3 rounded bg-hueso-hondo" />
         </div>
       ))}
     </div>
@@ -40,7 +42,7 @@ async function RecienPublicados(): Promise<React.JSX.Element> {
 
   if (!autos) {
     return (
-      <p role="status" className="rounded-2xl border border-linea bg-papel p-6 text-niebla">
+      <p role="status" className="rounded-xl border border-linea bg-papel p-6 text-gris">
         No pudimos cargar los autos recientes. Probá de nuevo en unos minutos o{" "}
         <Link href="/autos" className="enlace">
           buscá entre todos los autos
@@ -52,9 +54,9 @@ async function RecienPublicados(): Promise<React.JSX.Element> {
 
   if (autos.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-linea p-8">
+      <div className="rounded-xl border border-dashed border-linea p-8">
         <p className="text-lg font-semibold">Todavía no hay autos publicados.</p>
-        <p className="mt-1 text-niebla">
+        <p className="mt-1 text-gris">
           Publicá el primero y aparecerá acá.
         </p>
         <Link href="/autos/publicar" className="boton boton-principal mt-5">
@@ -92,19 +94,32 @@ export default function PaginaInicio(): React.JSX.Element {
     <>
       <Encabezado />
       <main className="flex-1">
-        <div className="mx-auto max-w-6xl px-4 pt-6 sm:px-8 sm:pt-10">
-          <section className="parabrisas" aria-labelledby="titulo-inicio">
-            <div className="vidrio parabrisas-vidrio" aria-hidden="true" />
-            <h1
-              id="titulo-inicio"
-              className="tiza tiza-escrita max-w-[13ch] text-[clamp(3rem,8.5vw,6rem)]"
-            >
-              Autos en venta en Rafaela
-            </h1>
-            <p className="mt-5 max-w-xl text-lg text-white/80">
-              Filtrá por marca, modelo, año y presupuesto.
-            </p>
-            <div className="mt-8">
+        <div className="mx-auto max-w-6xl px-4 pt-6 pb-20 sm:px-8 sm:pt-10 sm:pb-24">
+          <section aria-labelledby="titulo-inicio">
+            <div className="relative isolate aspect-[4/5] overflow-hidden rounded-xl border border-linea bg-hueso-hondo sm:aspect-[16/9] lg:aspect-[1376/768]">
+              <Image
+                src={fotoInicio}
+                alt=""
+                fill
+                preload
+                placeholder="blur"
+                sizes="(min-width: 1152px) 1088px, 100vw"
+                className="foto-calida -z-10 object-cover"
+              />
+              <div aria-hidden="true" className="grano absolute inset-0 -z-10" />
+              <div className="px-5 pt-7 sm:px-12 sm:pt-11">
+                <h1
+                  id="titulo-inicio"
+                  className="titular entrada max-w-[14ch] text-[clamp(2.5rem,6vw,4.5rem)]"
+                >
+                  Autos en venta en Rafaela
+                </h1>
+                <p className="entrada mt-4 max-w-md text-lg text-carbon">
+                  Filtrá por marca, modelo, año y presupuesto.
+                </p>
+              </div>
+            </div>
+            <div className="relative z-10 -mt-14 px-3 sm:-mt-16 sm:px-10">
               <FormularioBusquedaAutos variante="tablero" />
             </div>
           </section>
@@ -113,12 +128,12 @@ export default function PaginaInicio(): React.JSX.Element {
             aria-label="Buscar por marca"
             className="mt-5 flex flex-wrap items-baseline gap-x-5 gap-y-1.5 px-1"
           >
-            <span className="text-sm text-niebla">Buscar por marca:</span>
+            <span className="text-sm text-gris">Buscar por marca:</span>
             {marcasFrecuentes.map((marca) => (
               <Link
                 key={marca}
                 href={`/autos?q=${encodeURIComponent(marca)}`}
-                className="condensada text-lg font-bold text-vidrio hover:underline hover:underline-offset-4"
+                className="text-[0.9375rem] font-medium text-tinta hover:underline hover:underline-offset-4"
               >
                 {marca}
               </Link>
@@ -126,48 +141,51 @@ export default function PaginaInicio(): React.JSX.Element {
           </nav>
         </div>
 
-        <section
-          aria-labelledby="titulo-recientes"
-          className="mx-auto max-w-6xl px-4 py-16 sm:px-8"
-        >
-          <div className="mb-7 flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
-            <h2
-              id="titulo-recientes"
-              className="condensada text-titulo font-extrabold text-vidrio"
-            >
-              Recién publicados
-            </h2>
-            <Link href="/autos" className="enlace">
-              Ver todos los autos
-            </Link>
-          </div>
-          <Suspense fallback={<EsqueletoTarjetas />}>
-            <RecienPublicados />
-          </Suspense>
-        </section>
+        {/* Cada sección del inicio queda delimitada: esta va en una franja blanca. */}
+        <div className="border-y border-linea bg-papel">
+          <section
+            aria-labelledby="titulo-recientes"
+            className="aparecer mx-auto max-w-6xl px-4 py-20 sm:px-8 sm:py-24"
+          >
+            <div className="mb-7 flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
+              <h2
+                id="titulo-recientes"
+                className="titular text-titulo"
+              >
+                Recién publicados
+              </h2>
+              <Link href="/autos" className="enlace">
+                Ver todos los autos
+              </Link>
+            </div>
+            <Suspense fallback={<EsqueletoTarjetas />}>
+              <RecienPublicados />
+            </Suspense>
+          </section>
+        </div>
 
-        <div className="mx-auto grid max-w-6xl gap-5 px-4 pb-20 sm:px-8 md:grid-cols-2">
+        <div className="aparecer mx-auto grid max-w-6xl gap-5 px-4 py-20 sm:px-8 sm:py-24 md:grid-cols-[1.35fr_1fr]">
           <section
             aria-labelledby="titulo-servicios"
-            className="flex flex-col rounded-[1.25rem] bg-hormigon-hondo p-6 sm:p-8"
+            className="flex flex-col rounded-xl border border-linea bg-papel p-6 sm:p-10"
           >
             <h2
               id="titulo-servicios"
-              className="condensada text-subtitulo font-extrabold text-vidrio"
+              className="titular text-subtitulo"
             >
               Talleres y lavaderos
             </h2>
-            <p className="mt-3 max-w-md text-niebla">
+            <p className="mt-3 max-w-md text-gris">
               Encontrá talleres mecánicos y lavaderos en el mapa de Rafaela y
               filtrá por cercanía.
             </p>
             <ul className="mt-5 flex gap-6 text-sm font-semibold" aria-label="Tipos de servicio">
               <li className="flex items-center gap-2">
-                <span className="size-3 rounded-full bg-oxido" aria-hidden="true" />
+                <span className="size-3 rounded-full bg-taller" aria-hidden="true" />
                 Talleres
               </li>
               <li className="flex items-center gap-2">
-                <span className="size-3 rounded-full bg-agua" aria-hidden="true" />
+                <span className="size-3 rounded-full bg-lavadero" aria-hidden="true" />
                 Lavaderos
               </li>
             </ul>
@@ -181,22 +199,20 @@ export default function PaginaInicio(): React.JSX.Element {
 
           <section
             aria-labelledby="titulo-vender"
-            className="vidrio relative flex flex-col overflow-hidden rounded-[1.25rem] p-6 pt-20 sm:p-8 sm:pt-20"
+            className="flex flex-col rounded-xl border border-linea bg-papel p-6 sm:p-10"
           >
-            <div className="franja" aria-hidden="true" />
             <h2
               id="titulo-vender"
-              className="condensada text-subtitulo font-extrabold"
+              className="titular text-subtitulo"
             >
               ¿Vendés tu auto?
             </h2>
-            <p className="mt-3 max-w-md text-white/80">
-              Publicalo con marca, modelo, año, precio y fotos. Necesitás una
-              cuenta para publicar.
+            <p className="mt-3 max-w-md text-gris">
+              Publicalo con marca, modelo, año, precio y fotos.
             </p>
             <Link
               href="/autos/publicar"
-              className="boton boton-tiza mt-7 self-start"
+              className="boton boton-principal mt-7 self-start"
             >
               Publicar auto
             </Link>

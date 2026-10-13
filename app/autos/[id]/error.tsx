@@ -16,10 +16,10 @@ export default function ErrorDetalleAuto({
 
   return (
     <div role="alert" className="max-w-xl py-10">
-      <h1 className="condensada text-titulo font-extrabold text-vidrio">
+      <h1 className="titular text-titulo">
         No pudimos cargar esta publicación
       </h1>
-      <p className="mt-3 text-lg text-niebla">
+      <p className="mt-3 text-lg text-gris">
         El servidor no respondió. Volvé a intentar en unos segundos.
       </p>
       <div className="mt-7 flex flex-wrap gap-3">
