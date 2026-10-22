@@ -439,7 +439,13 @@ export async function buscarPublicaciones(
         filter,
       },
     },
-    sort: [{ _score: { order: "desc" } }, { createdAt: { order: "desc" } }],
+    // Los locales verificados van primero; los documentos indexados antes de
+    // que existiera el campo cuentan como no verificados.
+    sort: [
+      { ownerVerified: { order: "desc", missing: "_last" } },
+      { _score: { order: "desc" } },
+      { createdAt: { order: "desc" } },
+    ],
   });
 
   const total = response.hits.total;
