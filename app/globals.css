@@ -231,6 +231,37 @@ body {
     background: var(--color-lavadero);
   }
 
+  /* Local verificado: más grande y con borde dorado. */
+  .marcador-servicio--verificado {
+    width: 34px;
+    height: 34px;
+    border-color: var(--color-destacado);
+    box-shadow:
+      0 0 0 2px var(--color-papel),
+      0 2px 8px rgb(0 0 0 / 0.35);
+  }
+
+  .popup-vendedor {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    margin-top: 0.25rem;
+  }
+
+  /* Igual que MarcaVerificado, para los popups que Leaflet arma fuera de React. */
+  .marca-verificado {
+    display: inline-grid;
+    place-items: center;
+    width: 1.4em;
+    height: 1.4em;
+    border-radius: 9999px;
+    background: var(--color-destacado);
+    color: var(--color-papel);
+    font-size: 0.7em;
+    font-weight: 700;
+    line-height: 1;
+  }
+
   .marcador-publicacion {
     background: transparent;
     border: 0;

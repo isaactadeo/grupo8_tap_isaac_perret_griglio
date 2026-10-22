@@ -31,6 +31,8 @@ interface FilaAuto {
   province: string | null;
   latitud: number | null;
   longitud: number | null;
+  ownerVerified: boolean;
+  ownerName: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -44,8 +46,24 @@ interface FilaServicio {
   price: string;
   latitud: number | null;
   longitud: number | null;
+  ownerVerified: boolean;
+  ownerName: string | null;
   createdAt: Date;
   updatedAt: Date;
+}
+
+// Subconsultas y no joins: las columnas también se usan en los RETURNING de
+// insert/update, donde no se puede hacer join. Las columnas van calificadas a
+// mano porque Drizzle las escribe sin tabla en consultas de una sola tabla.
+function columnasDueno(tabla: "cars" | "services") {
+  const userId = sql.raw(`"${tabla}"."user_id"`);
+  return {
+    ownerVerified: sql<boolean>`coalesce((select dueno.verified_at is not null from users dueno where dueno.id = ${userId}), false)`,
+    // Verificado: se publica el nombre que aprobó el moderador, para que un
+    // cambio de nombre en Clerk no herede el tilde. Sin nombre en Clerk se
+    // guarda el correo (recortado a 150) como nombre: nunca se publica.
+    ownerName: sql<string | null>`(select case when dueno.verified_at is not null then dueno.verified_name else nullif(dueno.name, left(dueno.email, 150)) end from users dueno where dueno.id = ${userId})`,
+  };
 }
 
 const columnasAuto = {
@@ -61,6 +79,7 @@ const columnasAuto = {
   province: cars.province,
   latitud: sql<number | null>`ST_Y(${cars.location}::geometry)`,
   longitud: sql<number | null>`ST_X(${cars.location}::geometry)`,
+  ...columnasDueno("cars"),
   createdAt: cars.createdAt,
   updatedAt: cars.updatedAt,
 };
@@ -74,6 +93,7 @@ const columnasServicio = {
   price: services.price,
   latitud: sql<number | null>`ST_Y(${services.location}::geometry)`,
   longitud: sql<number | null>`ST_X(${services.location}::geometry)`,
+  ...columnasDueno("services"),
   createdAt: services.createdAt,
   updatedAt: services.updatedAt,
 };
@@ -107,6 +127,8 @@ function mapearAuto(fila: FilaAuto, fotos: string[] = []): Car {
       fila.latitud === null || fila.longitud === null
         ? null
         : { lat: fila.latitud, lng: fila.longitud },
+    ownerVerified: fila.ownerVerified,
+    ownerName: fila.ownerName,
     createdAt: fila.createdAt,
     updatedAt: fila.updatedAt,
   };
@@ -125,6 +147,8 @@ function mapearServicio(fila: FilaServicio, fotos: string[] = []): Service {
       fila.latitud === null || fila.longitud === null
         ? null
         : { lat: fila.latitud, lng: fila.longitud },
+    ownerVerified: fila.ownerVerified,
+    ownerName: fila.ownerName,
     createdAt: fila.createdAt,
     updatedAt: fila.updatedAt,
   };

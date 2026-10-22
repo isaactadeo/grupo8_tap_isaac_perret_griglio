@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import BotonEliminar from "@/app/_componentes/boton-eliminar";
 import Encabezado from "@/app/_componentes/encabezado";
-import { obtenerIdUsuarioActual } from "@/lib/auth/usuario";
+import { esPersonal, obtenerUsuarioActual } from "@/lib/auth/usuario";
 import {
   formatearFecha,
   formatearPrecio,
@@ -76,8 +76,8 @@ function FilaPublicacion({
 }
 
 async function ListadoPublicaciones(): Promise<React.JSX.Element> {
-  const usuarioId = await obtenerIdUsuarioActual();
-  if (!usuarioId) {
+  const usuario = await obtenerUsuarioActual();
+  if (!usuario) {
     return (
       <div className="mt-8 max-w-xl rounded-xl border border-linea bg-papel p-6">
         <p className="text-lg font-semibold">
@@ -99,12 +99,19 @@ async function ListadoPublicaciones(): Promise<React.JSX.Element> {
   }
 
   const [autos, servicios] = await Promise.all([
-    listarAutosDeUsuario(usuarioId),
-    listarServiciosDeUsuario(usuarioId),
+    listarAutosDeUsuario(usuario.id),
+    listarServiciosDeUsuario(usuario.id),
   ]);
 
   return (
     <>
+      {esPersonal(usuario.role) ? (
+        <p className="mt-4">
+          <Link href="/admin/usuarios" className="enlace">
+            Administración: locales verificados
+          </Link>
+        </p>
+      ) : null}
       <section aria-labelledby="titulo-mis-autos" className="mt-10">
         <h2
           id="titulo-mis-autos"

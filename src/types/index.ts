@@ -1,5 +1,7 @@
 export type ServiceType = "taller" | "lavadero";
 
+export type UserRole = "usuario" | "moderador" | "admin";
+
 /** Leaflet-friendly coordinates; PostGIS point constructors use lng before lat. */
 export interface GeoCoordinates {
   lat: number;
@@ -11,6 +13,12 @@ export interface User {
   clerkUserId: string | null;
   name: string;
   email: string;
+  role: UserRole;
+  /** Set when a moderator verifies the user as a real business. */
+  verifiedAt: Date | null;
+  verifiedBy: string | null;
+  /** Public name approved at verification; shown next to the check mark. */
+  verifiedName: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -31,6 +39,13 @@ export interface Car {
   city: string | null;
   province: string | null;
   location: GeoCoordinates | null;
+  /** The owner is a business verified by a moderator. */
+  ownerVerified: boolean;
+  /**
+   * Owner's public name: the name approved at verification for verified
+   * owners; null when the stored name is the owner's email.
+   */
+  ownerName: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -46,6 +61,13 @@ export interface Service {
   /** Image URLs are stored in service_images and assembled into this read model. */
   photos: string[];
   location: GeoCoordinates | null;
+  /** The owner is a business verified by a moderator. */
+  ownerVerified: boolean;
+  /**
+   * Owner's public name: the name approved at verification for verified
+   * owners; null when the stored name is the owner's email.
+   */
+  ownerName: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -62,12 +84,28 @@ export interface MarketplaceSearchDocument {
   photos: string[];
   location: { lat: number; lon: number } | null;
   createdAt: string;
+  /** Missing on documents indexed before owner verification existed. */
+  ownerVerified?: boolean;
+  ownerName?: string;
   make?: string;
   model?: string;
   year?: number;
   city?: string;
   province?: string;
   category?: ServiceType;
+}
+
+export interface AdminUserSummary {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  /** ISO date, serializable for client components. */
+  verifiedAt: string | null;
+  /** Name shown publicly with the check mark; may differ from the current name. */
+  verifiedName: string | null;
+  carCount: number;
+  serviceCount: number;
 }
 
 export interface MarketplaceSearchFilters {

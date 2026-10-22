@@ -6,6 +6,13 @@ CREATE TABLE users (
   clerk_user_id text,
   name varchar(150) NOT NULL,
   email varchar(320) NOT NULL,
+  role varchar(20) NOT NULL DEFAULT 'usuario'
+    CHECK (role IN ('usuario', 'moderador', 'admin')),
+  -- Local real verificado por un moderador; NULL si no está verificado.
+  verified_at timestamptz,
+  verified_by uuid REFERENCES users(id) ON DELETE SET NULL,
+  -- Nombre que vio el moderador al verificar; es el que se publica con el tilde.
+  verified_name varchar(150),
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );

@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { formatearPrecio } from "@/lib/marketplace/formato";
+import { InsigniaVerificado, NombreVendedor } from "./vendedor";
 
 export interface DatosTarjetaAuto {
   id?: string;
@@ -11,6 +12,9 @@ export interface DatosTarjetaAuto {
   price: number | string;
   foto?: string;
   ubicacion?: string;
+  /** Publicada por un local verificado: la tarjeta va destacada. */
+  verificado?: boolean;
+  vendedor?: string | null;
 }
 
 /**
@@ -32,8 +36,9 @@ function nombreDelAuto(auto: DatosTarjetaAuto): string {
 }
 
 /**
- * Tarjeta de un auto: foto, debajo el nombre del auto, el precio más grande
- * y una línea con año y ciudad.
+ * Tarjeta de un auto: foto, debajo el nombre del auto, el precio más grande,
+ * una línea con año y ciudad y otra con el vendedor. Las de locales
+ * verificados van destacadas, con el tilde junto al nombre del vendedor.
  */
 export default function TarjetaAuto({
   auto,
@@ -49,10 +54,15 @@ export default function TarjetaAuto({
   const datos = [auto.year ? String(auto.year) : null, auto.ubicacion].filter(
     Boolean,
   );
+  const verificado = auto.verificado === true;
 
   return (
     <article className="aparecer group relative flex flex-col gap-3 has-[a:focus-visible]:outline-3 has-[a:focus-visible]:outline-offset-4 has-[a:focus-visible]:outline-tinta rounded-[10px]">
-      <div className="foto-vacia tarjeta-foto relative aspect-[4/3] overflow-hidden rounded-[10px] border border-linea">
+      <div
+        className={`foto-vacia tarjeta-foto relative aspect-[4/3] overflow-hidden rounded-[10px] ${
+          verificado ? "border-2 border-destacado" : "border border-linea"
+        }`}
+      >
         {auto.foto ? (
           <Image
             src={auto.foto}
@@ -68,6 +78,9 @@ export default function TarjetaAuto({
             Sin fotos
           </p>
         )}
+        {verificado ? (
+          <InsigniaVerificado className="absolute top-2 left-2 z-10 shadow-sm" />
+        ) : null}
       </div>
 
       <div className="px-0.5">
@@ -92,6 +105,13 @@ export default function TarjetaAuto({
             {datos.join(" | ")}
           </p>
         ) : null}
+        <NombreVendedor
+          nombre={auto.vendedor}
+          verificado={verificado}
+          className={`mt-1 max-w-full text-[0.8125rem] ${
+            verificado ? "font-semibold text-carbon" : "text-gris"
+          }`}
+        />
       </div>
     </article>
   );

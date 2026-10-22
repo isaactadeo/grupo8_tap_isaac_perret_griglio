@@ -47,8 +47,23 @@ ALTER TABLE cars
   ADD COLUMN IF NOT EXISTS province varchar(60);
 ```
 
+Los roles y la verificación de locales agregan columnas a `users`. En una base
+creada antes (local o Supabase) hay que aplicarlas **antes** de desplegar el
+código que las usa; sin ellas fallan las lecturas de autos y servicios:
+
+```sql
+ALTER TABLE users
+  ADD COLUMN IF NOT EXISTS role varchar(20) NOT NULL DEFAULT 'usuario'
+    CHECK (role IN ('usuario', 'moderador', 'admin')),
+  ADD COLUMN IF NOT EXISTS verified_at timestamptz,
+  ADD COLUMN IF NOT EXISTS verified_by uuid REFERENCES users(id) ON DELETE SET NULL,
+  ADD COLUMN IF NOT EXISTS verified_name varchar(150);
+```
+
 El índice de Elasticsearch incorpora los campos nuevos automáticamente en la
-primera búsqueda.
+primera búsqueda. Los documentos indexados antes de la verificación de locales
+cuentan como no verificados y no muestran el nombre del vendedor en la búsqueda
+hasta que se edita la publicación o se cambia la verificación de su dueño.
 
 ## Base de datos en Supabase
 
@@ -62,7 +77,11 @@ PostgreSQL/PostGIS:
    ni modificar los datos con las claves públicas. En la base local no cambia
    nada. Como la app no usa la Data API, también se puede desactivar en
    Integrations → Data API.
-3. Usar como `DATABASE_URL` la cadena del pooler en modo transacción (Connect →
+3. Si la base ya existía antes de los roles y la verificación de locales,
+   ejecutar el `ALTER TABLE users …` de la sección anterior **antes** de
+   desplegar esa versión: sin esas columnas fallan las lecturas de autos y
+   servicios.
+4. Usar como `DATABASE_URL` la cadena del pooler en modo transacción (Connect →
    Transaction pooler, puerto 6543) con `?sslmode=require` al final. Por ese
    pooler, `lib/db/index.ts` crea la conexión con `prepare: false`.
 
@@ -82,8 +101,15 @@ búsqueda sin texto cuando se indica `kind`.
 
 Cada auto tiene su página en `/autos/[id]`, con galería de fotos, precio, ficha
 técnica, enlace a la ubicación en OpenStreetMap y descripción. Los datos se leen
-desde PostgreSQL. Las publicaciones todavía no muestran datos de contacto del
-vendedor.
+desde PostgreSQL. Las publicaciones muestran el nombre del vendedor (nunca su
+correo: si no cargó un nombre en Clerk, no se muestra), pero todavía no sus
+datos de contacto.
+
+Las publicaciones de locales verificados (ver Administración) aparecen primero
+en `GET /api/search`, con cualquier combinación de filtros, y se ven destacadas:
+borde dorado, la insignia "Local verificado" y un tilde junto al nombre del
+vendedor. El listado del inicio sigue en orden de publicación, con el mismo
+destacado.
 
 ## Servicios vehiculares
 
@@ -96,6 +122,11 @@ mapa. El mismo formulario se usa para editar en `/servicios/[id]/editar`.
 Los cambios se guardan primero en PostgreSQL y luego se indexan en Elasticsearch
 para la búsqueda. Un error de sincronización se informa sin ocultar que la
 publicación ya pudo haberse guardado.
+
+Los servicios de locales verificados aparecen primero en los resultados,
+destacados y con un tilde junto al nombre del vendedor. En el mapa su marcador
+es más grande, tiene borde dorado y queda por encima de los demás, y el popup
+muestra el nombre con el tilde.
 
 ## Publicar autos
 
@@ -121,6 +152,33 @@ con `next/font`. Los tokens están en `app/globals.css`
 (bloque `@theme`) y los componentes compartidos en `app/_componentes/`. El mapa
 se muestra en escala de grises para que resalten los marcadores.
 
+## Administración
+
+Los usuarios tienen un rol (`usuario`, `moderador` o `admin`). Moderadores y
+admins ven el enlace "Administración" en `/mis-publicaciones` y usan
+`/admin/usuarios` para tildar a los usuarios que son locales reales. La lista
+muestra solo usuarios que ya publicaron algo, con búsqueda por nombre o correo.
+Para cualquier otro visitante la página muestra "no encontrado", y
+`PATCH /api/admin/usuarios/[id]` responde 401 sin sesión y 403 sin rol.
+
+Al tildar o destildar, el cambio se guarda en PostgreSQL y después se reindexan
+todas las publicaciones del usuario; el panel informa cuántas. Si la
+reindexación falla, el cambio queda guardado y el panel ofrece "Reintentar
+sincronización", que repite la reindexación sin cambiar la verificación.
+Al verificar se guarda el nombre que tiene el usuario en ese momento y es el
+que se publica con el tilde, aunque después lo cambie en Clerk; para aprobar
+un nombre nuevo hay que destildar y volver a tildar.
+
+Los roles no tienen pantalla: se asignan por SQL (SQL Editor de Supabase o
+`psql`). Para dar de alta al primer admin, copiar su `clerk_user_id` del
+dashboard de Clerk; funciona aunque todavía no haya publicado nada:
+
+```sql
+INSERT INTO users (clerk_user_id, name, email, role)
+VALUES ('user_…', 'Nombre', 'correo@…', 'admin')
+ON CONFLICT (clerk_user_id) DO UPDATE SET role = EXCLUDED.role;
+```
+
 ## Estado de otras funcionalidades
 
 - Las APIs de autos y servicios, autenticación con Clerk y búsqueda con
@@ -137,6 +195,10 @@ se muestra en escala de grises para que resalten los marcadores.
   después de confirmar el borrado en PostgreSQL, salvo las que use otra
   publicación. Las URLs externas no se tocan. Si la limpieza falla, la
   publicación igual queda eliminada y el error se registra en el servidor.
+- Locales verificados: panel en `/admin/usuarios`, prioridad en la búsqueda y
+  el mapa, y destacado con tilde. Siguen pendientes la gestión de roles desde
+  la interfaz, que un local pida la verificación y priorizarlos en el listado
+  del inicio.
 - Contactar al vendedor sigue pendiente. Las fotos que se quitan al editar
   quedan en Vercel Blob sin limpieza automática.
 - La subida de fotos a Vercel Blob está implementada para autos y servicios. Las fotos subidas que no llegan a

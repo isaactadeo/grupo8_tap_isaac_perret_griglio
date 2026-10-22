@@ -81,6 +81,8 @@ async function RecienPublicados(): Promise<React.JSX.Element> {
               price: auto.price,
               foto: auto.photos[0],
               ubicacion: formatearUbicacion(auto.city, auto.province),
+              verificado: auto.ownerVerified,
+              vendedor: auto.ownerName,
             }}
           />
         </li>

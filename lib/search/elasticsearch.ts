@@ -56,6 +56,9 @@ const propiedadesIndice: Record<string, estypes.MappingProperty> = {
   photos: { type: "keyword", index: false },
   location: { type: "geo_point" },
   createdAt: { type: "date" },
+  ownerVerified: { type: "boolean" },
+  // Solo se muestra; no se busca por el nombre del dueño.
+  ownerName: { type: "keyword", index: false },
 };
 
 let client: Client | undefined;
@@ -201,6 +204,8 @@ export function convertirAutoADocumentoBusqueda(
     photos: car.photos,
     location: convertirUbicacion(car.location),
     createdAt: car.createdAt.toISOString(),
+    ownerVerified: car.ownerVerified,
+    ...(car.ownerName ? { ownerName: car.ownerName } : {}),
     make: car.make,
     model: car.model,
     year: car.year,
@@ -227,6 +232,8 @@ export function convertirServicioADocumentoBusqueda(
     photos: service.photos,
     location: convertirUbicacion(service.location),
     createdAt: service.createdAt.toISOString(),
+    ownerVerified: service.ownerVerified,
+    ...(service.ownerName ? { ownerName: service.ownerName } : {}),
     category: service.category,
   };
 }
@@ -432,7 +439,14 @@ export async function buscarPublicaciones(
         filter,
       },
     },
-    sort: [{ _score: { order: "desc" } }, { createdAt: { order: "desc" } }],
+    // Los locales verificados van primero. Los documentos indexados antes de
+    // que existiera el campo se ordenan igual que los no verificados: ES
+    // ordena los booleanos como 0/1, así que el faltante es 0 (no `false`).
+    sort: [
+      { ownerVerified: { order: "desc", missing: 0 } },
+      { _score: { order: "desc" } },
+      { createdAt: { order: "desc" } },
+    ],
   });
 
   const total = response.hits.total;
