@@ -16,8 +16,9 @@ function leerMensajeError(datos: unknown): string {
 }
 
 /**
- * Marca o desmarca a un usuario como local verificado. Volver a enviar el
- * mismo valor reintenta la reindexación de sus publicaciones.
+ * Marca o desmarca a un usuario como local verificado. Si la base se guardó
+ * pero la búsqueda no se sincronizó, ofrece reintentar con el mismo valor
+ * sin tocar la casilla (la API es idempotente).
  */
 export default function CasillaVerificacion({
   usuarioId,
@@ -31,12 +32,13 @@ export default function CasillaVerificacion({
   const router = useRouter();
   const [verificado, setVerificado] = useState(verificadoInicial);
   const [enviando, setEnviando] = useState(false);
+  const [sincronizacionPendiente, setSincronizacionPendiente] = useState(false);
   const [mensaje, setMensaje] = useState<{
     texto: string;
     error: boolean;
   } | null>(null);
 
-  async function cambiar(valor: boolean) {
+  async function enviar(valor: boolean, valorAnterior: boolean) {
     setVerificado(valor);
     setEnviando(true);
     setMensaje(null);
@@ -56,6 +58,7 @@ export default function CasillaVerificacion({
           typeof datos.reindexadas === "number"
             ? datos.reindexadas
             : 0;
+        setSincronizacionPendiente(false);
         setMensaje({
           texto:
             reindexadas === 1
@@ -69,20 +72,25 @@ export default function CasillaVerificacion({
 
       if (respuesta.status === 503) {
         // La base quedó actualizada: la casilla muestra el valor guardado.
+        setSincronizacionPendiente(true);
         setMensaje({
-          texto:
-            "Guardado. La búsqueda no se actualizó: volvé a tildar para reintentar.",
+          texto: "Guardado, pero la búsqueda no se actualizó.",
           error: true,
         });
         router.refresh();
         return;
       }
 
-      setVerificado(!valor);
+      setVerificado(valorAnterior);
       setMensaje({ texto: leerMensajeError(datos), error: true });
     } catch {
-      setVerificado(!valor);
-      setMensaje({ texto: "No se pudo conectar. Probá de nuevo.", error: true });
+      // La base pudo haberse actualizado antes de perder la respuesta.
+      setVerificado(valorAnterior);
+      setMensaje({
+        texto:
+          "No se pudo confirmar el cambio. Recargá la página para ver el estado guardado.",
+        error: true,
+      });
     } finally {
       setEnviando(false);
     }
@@ -95,21 +103,32 @@ export default function CasillaVerificacion({
           type="checkbox"
           checked={verificado}
           disabled={enviando}
-          onChange={(evento) => void cambiar(evento.target.checked)}
+          onChange={(evento) =>
+            void enviar(evento.target.checked, verificado)
+          }
           aria-label={`Local verificado: ${nombre}`}
           className="size-5 accent-tinta"
         />
         Local verificado
       </label>
-      {mensaje ? (
-        <p
-          role={mensaje.error ? "alert" : "status"}
-          className={`max-w-64 text-sm sm:text-right ${
-            mensaje.error ? "font-medium text-alerta" : "text-gris"
-          }`}
+      {/* Siempre montado para que los lectores de pantalla anuncien el cambio. */}
+      <p
+        role="status"
+        className={`max-w-64 text-sm sm:text-right ${
+          mensaje?.error ? "font-medium text-alerta" : "text-gris"
+        }`}
+      >
+        {mensaje?.texto}
+      </p>
+      {sincronizacionPendiente ? (
+        <button
+          type="button"
+          disabled={enviando}
+          onClick={() => void enviar(verificado, verificado)}
+          className="boton boton-secundario min-h-9 px-3 py-1.5 text-sm"
         >
-          {mensaje.texto}
-        </p>
+          {enviando ? "Reintentando…" : "Reintentar sincronización"}
+        </button>
       ) : null}
     </div>
   );

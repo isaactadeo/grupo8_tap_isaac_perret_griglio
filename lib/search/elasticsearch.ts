@@ -439,10 +439,11 @@ export async function buscarPublicaciones(
         filter,
       },
     },
-    // Los locales verificados van primero; los documentos indexados antes de
-    // que existiera el campo cuentan como no verificados.
+    // Los locales verificados van primero. Los documentos indexados antes de
+    // que existiera el campo se ordenan igual que los no verificados: ES
+    // ordena los booleanos como 0/1, así que el faltante es 0 (no `false`).
     sort: [
-      { ownerVerified: { order: "desc", missing: "_last" } },
+      { ownerVerified: { order: "desc", missing: 0 } },
       { _score: { order: "desc" } },
       { createdAt: { order: "desc" } },
     ],
