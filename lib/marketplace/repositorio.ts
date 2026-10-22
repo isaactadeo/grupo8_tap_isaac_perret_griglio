@@ -10,6 +10,7 @@ import {
   cars,
   serviceImages,
   services,
+  users,
 } from "@/lib/db/schema";
 import type {
   DatosActualizarAuto,
@@ -31,6 +32,8 @@ interface FilaAuto {
   province: string | null;
   latitud: number | null;
   longitud: number | null;
+  ownerVerified: boolean;
+  ownerName: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -44,8 +47,20 @@ interface FilaServicio {
   price: string;
   latitud: number | null;
   longitud: number | null;
+  ownerVerified: boolean;
+  ownerName: string | null;
   createdAt: Date;
   updatedAt: Date;
+}
+
+// Subconsultas y no joins: las columnas también se usan en los RETURNING de
+// insert/update, donde no se puede hacer join.
+function columnasDueno(userId: typeof cars.userId | typeof services.userId) {
+  return {
+    ownerVerified: sql<boolean>`coalesce((select ${users.verifiedAt} is not null from ${users} where ${users.id} = ${userId}), false)`,
+    // Sin nombre en Clerk se guarda el correo como nombre: nunca se publica.
+    ownerName: sql<string | null>`(select nullif(${users.name}, ${users.email}) from ${users} where ${users.id} = ${userId})`,
+  };
 }
 
 const columnasAuto = {
@@ -61,6 +76,7 @@ const columnasAuto = {
   province: cars.province,
   latitud: sql<number | null>`ST_Y(${cars.location}::geometry)`,
   longitud: sql<number | null>`ST_X(${cars.location}::geometry)`,
+  ...columnasDueno(cars.userId),
   createdAt: cars.createdAt,
   updatedAt: cars.updatedAt,
 };
@@ -74,6 +90,7 @@ const columnasServicio = {
   price: services.price,
   latitud: sql<number | null>`ST_Y(${services.location}::geometry)`,
   longitud: sql<number | null>`ST_X(${services.location}::geometry)`,
+  ...columnasDueno(services.userId),
   createdAt: services.createdAt,
   updatedAt: services.updatedAt,
 };
@@ -107,6 +124,8 @@ function mapearAuto(fila: FilaAuto, fotos: string[] = []): Car {
       fila.latitud === null || fila.longitud === null
         ? null
         : { lat: fila.latitud, lng: fila.longitud },
+    ownerVerified: fila.ownerVerified,
+    ownerName: fila.ownerName,
     createdAt: fila.createdAt,
     updatedAt: fila.updatedAt,
   };
@@ -125,6 +144,8 @@ function mapearServicio(fila: FilaServicio, fotos: string[] = []): Service {
       fila.latitud === null || fila.longitud === null
         ? null
         : { lat: fila.latitud, lng: fila.longitud },
+    ownerVerified: fila.ownerVerified,
+    ownerName: fila.ownerName,
     createdAt: fila.createdAt,
     updatedAt: fila.updatedAt,
   };

@@ -10,6 +10,7 @@ import {
   varchar,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
+import type { UserRole } from "@/src/types";
 import { geography } from "./custom-types";
 
 const camposDeTiempo = () => ({
@@ -28,11 +29,22 @@ export const users = pgTable(
     clerkUserId: text("clerk_user_id"),
     name: varchar("name", { length: 150 }).notNull(),
     email: varchar("email", { length: 320 }).notNull(),
+    role: varchar("role", { length: 20 })
+      .$type<UserRole>()
+      .notNull()
+      .default("usuario"),
+    verifiedAt: timestamp("verified_at", { withTimezone: true }),
+    // La FK a users(id) está en database/init.sql.
+    verifiedBy: uuid("verified_by"),
     ...camposDeTiempo(),
   },
   (table) => [
     uniqueIndex("users_email_idx").on(table.email),
     uniqueIndex("users_clerk_user_id_idx").on(table.clerkUserId),
+    check(
+      "users_role_check",
+      sql`${table.role} in ('usuario', 'moderador', 'admin')`,
+    ),
   ],
 );
 

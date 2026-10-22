@@ -47,6 +47,18 @@ ALTER TABLE cars
   ADD COLUMN IF NOT EXISTS province varchar(60);
 ```
 
+Los roles y la verificación de locales agregan columnas a `users`. En una base
+creada antes (local o Supabase) hay que aplicarlas **antes** de desplegar el
+código que las usa; sin ellas fallan las lecturas de autos y servicios:
+
+```sql
+ALTER TABLE users
+  ADD COLUMN IF NOT EXISTS role varchar(20) NOT NULL DEFAULT 'usuario'
+    CHECK (role IN ('usuario', 'moderador', 'admin')),
+  ADD COLUMN IF NOT EXISTS verified_at timestamptz,
+  ADD COLUMN IF NOT EXISTS verified_by uuid REFERENCES users(id) ON DELETE SET NULL;
+```
+
 El índice de Elasticsearch incorpora los campos nuevos automáticamente en la
 primera búsqueda.
 

@@ -56,6 +56,9 @@ const propiedadesIndice: Record<string, estypes.MappingProperty> = {
   photos: { type: "keyword", index: false },
   location: { type: "geo_point" },
   createdAt: { type: "date" },
+  ownerVerified: { type: "boolean" },
+  // Solo se muestra; no se busca por el nombre del dueño.
+  ownerName: { type: "keyword", index: false },
 };
 
 let client: Client | undefined;
@@ -201,6 +204,8 @@ export function convertirAutoADocumentoBusqueda(
     photos: car.photos,
     location: convertirUbicacion(car.location),
     createdAt: car.createdAt.toISOString(),
+    ownerVerified: car.ownerVerified,
+    ...(car.ownerName ? { ownerName: car.ownerName } : {}),
     make: car.make,
     model: car.model,
     year: car.year,
@@ -227,6 +232,8 @@ export function convertirServicioADocumentoBusqueda(
     photos: service.photos,
     location: convertirUbicacion(service.location),
     createdAt: service.createdAt.toISOString(),
+    ownerVerified: service.ownerVerified,
+    ...(service.ownerName ? { ownerName: service.ownerName } : {}),
     category: service.category,
   };
 }
