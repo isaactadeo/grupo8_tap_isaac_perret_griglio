@@ -36,6 +36,7 @@ export const users = pgTable(
     verifiedAt: timestamp("verified_at", { withTimezone: true }),
     // La FK a users(id) está en database/init.sql.
     verifiedBy: uuid("verified_by"),
+    verifiedName: varchar("verified_name", { length: 150 }),
     ...camposDeTiempo(),
   },
   (table) => [

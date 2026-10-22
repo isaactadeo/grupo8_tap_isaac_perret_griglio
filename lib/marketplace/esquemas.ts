@@ -70,3 +70,7 @@ export type DatosNuevoServicio = z.infer<typeof esquemaCrearServicio>;
 export type DatosActualizarServicio = z.infer<
   typeof esquemaActualizarServicio
 >;
+
+export const esquemaVerificacionUsuario = z
+  .object({ verified: z.boolean() })
+  .strict();

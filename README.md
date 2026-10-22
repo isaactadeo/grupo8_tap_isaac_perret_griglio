@@ -56,7 +56,8 @@ ALTER TABLE users
   ADD COLUMN IF NOT EXISTS role varchar(20) NOT NULL DEFAULT 'usuario'
     CHECK (role IN ('usuario', 'moderador', 'admin')),
   ADD COLUMN IF NOT EXISTS verified_at timestamptz,
-  ADD COLUMN IF NOT EXISTS verified_by uuid REFERENCES users(id) ON DELETE SET NULL;
+  ADD COLUMN IF NOT EXISTS verified_by uuid REFERENCES users(id) ON DELETE SET NULL,
+  ADD COLUMN IF NOT EXISTS verified_name varchar(150);
 ```
 
 El índice de Elasticsearch incorpora los campos nuevos automáticamente en la

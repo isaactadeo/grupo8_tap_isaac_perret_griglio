@@ -17,6 +17,8 @@ export interface User {
   /** Set when a moderator verifies the user as a real business. */
   verifiedAt: Date | null;
   verifiedBy: string | null;
+  /** Public name approved at verification; shown next to the check mark. */
+  verifiedName: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -39,7 +41,10 @@ export interface Car {
   location: GeoCoordinates | null;
   /** The owner is a business verified by a moderator. */
   ownerVerified: boolean;
-  /** Owner's public name; null when the stored name is the owner's email. */
+  /**
+   * Owner's public name: the name approved at verification for verified
+   * owners; null when the stored name is the owner's email.
+   */
   ownerName: string | null;
   createdAt: Date;
   updatedAt: Date;
@@ -58,7 +63,10 @@ export interface Service {
   location: GeoCoordinates | null;
   /** The owner is a business verified by a moderator. */
   ownerVerified: boolean;
-  /** Owner's public name; null when the stored name is the owner's email. */
+  /**
+   * Owner's public name: the name approved at verification for verified
+   * owners; null when the stored name is the owner's email.
+   */
   ownerName: string | null;
   createdAt: Date;
   updatedAt: Date;
@@ -94,6 +102,8 @@ export interface AdminUserSummary {
   role: UserRole;
   /** ISO date, serializable for client components. */
   verifiedAt: string | null;
+  /** Name shown publicly with the check mark; may differ from the current name. */
+  verifiedName: string | null;
   carCount: number;
   serviceCount: number;
 }
