@@ -95,8 +95,15 @@ búsqueda sin texto cuando se indica `kind`.
 
 Cada auto tiene su página en `/autos/[id]`, con galería de fotos, precio, ficha
 técnica, enlace a la ubicación en OpenStreetMap y descripción. Los datos se leen
-desde PostgreSQL. Las publicaciones todavía no muestran datos de contacto del
-vendedor.
+desde PostgreSQL. Las publicaciones muestran el nombre del vendedor (nunca su
+correo: si no cargó un nombre en Clerk, no se muestra), pero todavía no sus
+datos de contacto.
+
+Las publicaciones de locales verificados (ver Administración) aparecen primero
+en `GET /api/search`, con cualquier combinación de filtros, y se ven destacadas:
+borde dorado, la insignia "Local verificado" y un tilde junto al nombre del
+vendedor. El listado del inicio sigue en orden de publicación, con el mismo
+destacado.
 
 ## Servicios vehiculares
 
@@ -109,6 +116,11 @@ mapa. El mismo formulario se usa para editar en `/servicios/[id]/editar`.
 Los cambios se guardan primero en PostgreSQL y luego se indexan en Elasticsearch
 para la búsqueda. Un error de sincronización se informa sin ocultar que la
 publicación ya pudo haberse guardado.
+
+Los servicios de locales verificados aparecen primero en los resultados,
+destacados y con un tilde junto al nombre del vendedor. En el mapa su marcador
+es más grande, tiene borde dorado y queda por encima de los demás, y el popup
+muestra el nombre con el tilde.
 
 ## Publicar autos
 
@@ -176,6 +188,10 @@ ON CONFLICT (clerk_user_id) DO UPDATE SET role = EXCLUDED.role;
   después de confirmar el borrado en PostgreSQL, salvo las que use otra
   publicación. Las URLs externas no se tocan. Si la limpieza falla, la
   publicación igual queda eliminada y el error se registra en el servidor.
+- Locales verificados: panel en `/admin/usuarios`, prioridad en la búsqueda y
+  el mapa, y destacado con tilde. Siguen pendientes la gestión de roles desde
+  la interfaz, que un local pida la verificación y priorizarlos en el listado
+  del inicio.
 - Contactar al vendedor sigue pendiente. Las fotos que se quitan al editar
   quedan en Vercel Blob sin limpieza automática.
 - La subida de fotos a Vercel Blob está implementada para autos y servicios. Las fotos subidas que no llegan a
