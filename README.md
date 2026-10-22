@@ -61,7 +61,9 @@ ALTER TABLE users
 ```
 
 El índice de Elasticsearch incorpora los campos nuevos automáticamente en la
-primera búsqueda.
+primera búsqueda. Los documentos indexados antes de la verificación de locales
+cuentan como no verificados y no muestran el nombre del vendedor en la búsqueda
+hasta que se edita la publicación o se cambia la verificación de su dueño.
 
 ## Base de datos en Supabase
 
@@ -75,7 +77,11 @@ PostgreSQL/PostGIS:
    ni modificar los datos con las claves públicas. En la base local no cambia
    nada. Como la app no usa la Data API, también se puede desactivar en
    Integrations → Data API.
-3. Usar como `DATABASE_URL` la cadena del pooler en modo transacción (Connect →
+3. Si la base ya existía antes de los roles y la verificación de locales,
+   ejecutar el `ALTER TABLE users …` de la sección anterior **antes** de
+   desplegar esa versión: sin esas columnas fallan las lecturas de autos y
+   servicios.
+4. Usar como `DATABASE_URL` la cadena del pooler en modo transacción (Connect →
    Transaction pooler, puerto 6543) con `?sslmode=require` al final. Por ese
    pooler, `lib/db/index.ts` crea la conexión con `prepare: false`.
 
@@ -157,7 +163,8 @@ Para cualquier otro visitante la página muestra "no encontrado", y
 
 Al tildar o destildar, el cambio se guarda en PostgreSQL y después se reindexan
 todas las publicaciones del usuario; el panel informa cuántas. Si la
-reindexación falla, el cambio queda guardado y volver a tildar la reintenta.
+reindexación falla, el cambio queda guardado y el panel ofrece "Reintentar
+sincronización", que repite la reindexación sin cambiar la verificación.
 Al verificar se guarda el nombre que tiene el usuario en ese momento y es el
 que se publica con el tilde, aunque después lo cambie en Clerk; para aprobar
 un nombre nuevo hay que destildar y volver a tildar.
