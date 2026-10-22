@@ -4,6 +4,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState, type SubmitEvent } from "react";
 import MapaServicios from "./mapa";
+import {
+  InsigniaVerificado,
+  MarcaVerificado,
+  NombreVendedor,
+} from "@/app/_componentes/vendedor";
 import { formatearPrecio } from "@/lib/marketplace/formato";
 import type {
   GeoCoordinates,
@@ -241,6 +246,10 @@ export default function PanelServicios(): React.JSX.Element {
                 <span className="size-3 rounded-full bg-lavadero" aria-hidden="true" />
                 Lavaderos
               </li>
+              <li className="flex items-center gap-2">
+                <MarcaVerificado />
+                Local verificado (marcador más grande, con borde dorado)
+              </li>
             </ul>
           </div>
 
@@ -269,7 +278,12 @@ export default function PanelServicios(): React.JSX.Element {
                 {resultado.items.map((servicio) => (
                   <li
                     key={`${servicio.kind}:${servicio.id}`}
-                    className="flex gap-4 py-5"
+                    className={`flex gap-4 py-5 ${
+                      // Los documentos indexados antes no traen el campo.
+                      servicio.ownerVerified === true
+                        ? "my-2 rounded-xl border-2 border-destacado bg-destacado-suave px-4"
+                        : ""
+                    }`}
                   >
                     {servicio.photos[0] ? (
                       <Image
@@ -282,20 +296,30 @@ export default function PanelServicios(): React.JSX.Element {
                       />
                     ) : null}
                     <div className="min-w-0">
-                      <p
-                        className={`insignia ${
-                          servicio.category
-                            ? insigniasCategoria[servicio.category]
-                            : "bg-hueso-hondo text-gris"
-                        }`}
-                      >
-                        {servicio.category
-                          ? etiquetasCategoria[servicio.category]
-                          : "Servicio"}
+                      <p className="flex flex-wrap gap-1.5">
+                        <span
+                          className={`insignia ${
+                            servicio.category
+                              ? insigniasCategoria[servicio.category]
+                              : "bg-hueso-hondo text-gris"
+                          }`}
+                        >
+                          {servicio.category
+                            ? etiquetasCategoria[servicio.category]
+                            : "Servicio"}
+                        </span>
+                        {servicio.ownerVerified === true ? (
+                          <InsigniaVerificado />
+                        ) : null}
                       </p>
                       <h2 className="mt-1 text-lg leading-snug font-semibold">
                         {servicio.title}
                       </h2>
+                      <NombreVendedor
+                        nombre={servicio.ownerName}
+                        verificado={servicio.ownerVerified === true}
+                        className="max-w-full text-sm text-gris"
+                      />
                       <p className="mt-1 line-clamp-3 max-w-prose text-gris">
                         {servicio.description}
                       </p>

@@ -6,6 +6,7 @@ import {
   formatearUbicacion,
 } from "@/lib/marketplace/formato";
 import type { Car } from "@/src/types";
+import { NombreVendedor } from "@/app/_componentes/vendedor";
 import GaleriaFotos from "./galeria";
 
 export default function VistaDetalleAuto({
@@ -66,6 +67,28 @@ export default function VistaDetalleAuto({
               {formatearPrecio(auto.price)}
             </p>
           </div>
+
+          {auto.ownerName || auto.ownerVerified ? (
+            <div
+              className={`mt-5 rounded-xl border p-4 ${
+                auto.ownerVerified
+                  ? "border-destacado bg-destacado-suave"
+                  : "border-linea bg-papel"
+              }`}
+            >
+              <p className="text-sm text-gris">Publicado por</p>
+              <NombreVendedor
+                nombre={auto.ownerName}
+                verificado={auto.ownerVerified}
+                className="mt-0.5 max-w-full text-lg font-semibold text-carbon"
+              />
+              {auto.ownerVerified ? (
+                <p className="mt-1 text-sm text-destacado">
+                  Local verificado por Marketplace Rafaela.
+                </p>
+              ) : null}
+            </div>
+          ) : null}
 
           {esPropietario ? (
             <div className="mt-5 rounded-xl border border-linea bg-papel p-4">

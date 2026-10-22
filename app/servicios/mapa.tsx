@@ -97,17 +97,23 @@ export default function MapaServicios({
           }
 
           const categoria = servicio.category ?? "taller";
+          // Los locales verificados van más grandes y por encima del resto.
+          const verificado = servicio.ownerVerified === true;
+          const tamano = verificado ? 36 : 30;
           const marcador = L.marker(
             [servicio.location.lat, servicio.location.lon],
             {
               icon: L.divIcon({
                 className: "",
-                html: `<span class="marcador-servicio marcador-servicio--${categoria}"></span>`,
-                iconSize: [30, 30],
-                iconAnchor: [15, 35],
-                popupAnchor: [0, -32],
+                html: `<span class="marcador-servicio marcador-servicio--${categoria}${
+                  verificado ? " marcador-servicio--verificado" : ""
+                }"></span>`,
+                iconSize: [tamano, tamano],
+                iconAnchor: [tamano / 2, tamano + 5],
+                popupAnchor: [0, -(tamano + 2)],
               }),
               title: servicio.title,
+              zIndexOffset: verificado ? 1000 : 0,
             },
           );
           const popup = document.createElement("div");
@@ -116,6 +122,25 @@ export default function MapaServicios({
           const tipo = document.createElement("div");
           tipo.textContent = categoria === "taller" ? "Taller" : "Lavadero";
           popup.append(nombre, tipo);
+          const vendedor =
+            servicio.ownerName ?? (verificado ? "Local verificado" : null);
+          if (vendedor) {
+            const lineaVendedor = document.createElement("div");
+            lineaVendedor.className = "popup-vendedor";
+            const nombreVendedor = document.createElement("span");
+            nombreVendedor.textContent = vendedor;
+            lineaVendedor.append(nombreVendedor);
+            if (verificado) {
+              const marca = document.createElement("span");
+              marca.className = "marca-verificado";
+              marca.textContent = "✓";
+              marca.title = "Local verificado";
+              marca.setAttribute("role", "img");
+              marca.setAttribute("aria-label", "Local verificado");
+              lineaVendedor.append(marca);
+            }
+            popup.append(lineaVendedor);
+          }
           marcador.bindPopup(popup).addTo(capaMarcadores);
         }
 

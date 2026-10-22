@@ -254,6 +254,9 @@ export default function BuscadorAutos(): React.JSX.Element {
                     price: auto.price,
                     foto: auto.photos[0],
                     ubicacion: formatearUbicacion(auto.city, auto.province),
+                    // Los documentos indexados antes no traen estos campos.
+                    verificado: auto.ownerVerified === true,
+                    vendedor: auto.ownerName,
                   }}
                 />
               </li>
