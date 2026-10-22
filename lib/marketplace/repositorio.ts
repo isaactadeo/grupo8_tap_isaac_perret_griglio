@@ -10,7 +10,6 @@ import {
   cars,
   serviceImages,
   services,
-  users,
 } from "@/lib/db/schema";
 import type {
   DatosActualizarAuto,

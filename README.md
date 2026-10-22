@@ -134,6 +134,32 @@ con `next/font`. Los tokens están en `app/globals.css`
 (bloque `@theme`) y los componentes compartidos en `app/_componentes/`. El mapa
 se muestra en escala de grises para que resalten los marcadores.
 
+## Administración
+
+Los usuarios tienen un rol (`usuario`, `moderador` o `admin`). Moderadores y
+admins ven el enlace "Administración" en `/mis-publicaciones` y usan
+`/admin/usuarios` para tildar a los usuarios que son locales reales. La lista
+muestra solo usuarios que ya publicaron algo, con búsqueda por nombre o correo.
+Para cualquier otro visitante la página muestra "no encontrado", y
+`PATCH /api/admin/usuarios/[id]` responde 401 sin sesión y 403 sin rol.
+
+Al tildar o destildar, el cambio se guarda en PostgreSQL y después se reindexan
+todas las publicaciones del usuario; el panel informa cuántas. Si la
+reindexación falla, el cambio queda guardado y volver a tildar la reintenta.
+Al verificar se guarda el nombre que tiene el usuario en ese momento y es el
+que se publica con el tilde, aunque después lo cambie en Clerk; para aprobar
+un nombre nuevo hay que destildar y volver a tildar.
+
+Los roles no tienen pantalla: se asignan por SQL (SQL Editor de Supabase o
+`psql`). Para dar de alta al primer admin, copiar su `clerk_user_id` del
+dashboard de Clerk; funciona aunque todavía no haya publicado nada:
+
+```sql
+INSERT INTO users (clerk_user_id, name, email, role)
+VALUES ('user_…', 'Nombre', 'correo@…', 'admin')
+ON CONFLICT (clerk_user_id) DO UPDATE SET role = EXCLUDED.role;
+```
+
 ## Estado de otras funcionalidades
 
 - Las APIs de autos y servicios, autenticación con Clerk y búsqueda con
