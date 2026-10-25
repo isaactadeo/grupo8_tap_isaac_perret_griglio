@@ -64,13 +64,24 @@ export const esquemaActualizarServicio = esquemaCrearServicio
     message: "Debe enviar al menos un campo para actualizar",
   });
 
+export const esquemaCrearComentario = z
+  .object({
+    content: z.string().trim().min(1).max(1000),
+  })
+  .strict();
+
+export const esquemaCalificarPublicacion = z
+  .object({
+    stars: z.number().int().min(1).max(5),
+  })
+  .strict();
+
 export type DatosNuevoAuto = z.infer<typeof esquemaCrearAuto>;
 export type DatosActualizarAuto = z.infer<typeof esquemaActualizarAuto>;
 export type DatosNuevoServicio = z.infer<typeof esquemaCrearServicio>;
 export type DatosActualizarServicio = z.infer<
   typeof esquemaActualizarServicio
 >;
-
 export const esquemaRolUsuario = z
   .object({ role: z.enum(["usuario", "moderador", "admin"]) })
   .strict();
@@ -78,3 +89,4 @@ export const esquemaRolUsuario = z
 export const esquemaVerificacionUsuario = z
   .object({ verified: z.boolean() })
   .strict();
+export type DatosNuevoComentario = z.infer<typeof esquemaCrearComentario>;

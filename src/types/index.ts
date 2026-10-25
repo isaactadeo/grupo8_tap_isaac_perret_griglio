@@ -74,6 +74,19 @@ export interface Service {
 
 export type ListingType = "car" | "service";
 
+export interface PublicationComment {
+  id: string;
+  content: string;
+  authorName: string;
+  createdAt: string;
+}
+
+export interface RatingSummary {
+  averageRating: number;
+  ratingCount: number;
+  userRating: number | null;
+}
+
 export interface MarketplaceSearchDocument {
   id: string;
   kind: ListingType;
