@@ -1,4 +1,4 @@
-import { auth, currentUser } from "@clerk/nextjs/server";
+import { auth, currentUser, type User } from "@clerk/nextjs/server";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
@@ -8,6 +8,31 @@ export interface UsuarioAutenticado {
   id: string;
   clerkUserId: string;
   role: UserRole;
+}
+
+/**
+ * Nombre y correo con los que se guarda un usuario de Clerk, o null si no
+ * tiene un correo principal verificado. Sin nombre se usa el correo, que
+ * nunca se publica.
+ */
+export function leerPerfilClerk(
+  perfil: User,
+): { nombre: string; correo: string } | null {
+  const correoPrincipal = perfil.primaryEmailAddress;
+  if (!correoPrincipal || correoPrincipal.verification?.status !== "verified") {
+    return null;
+  }
+  const correo = correoPrincipal.emailAddress;
+  const nombre =
+    [perfil.firstName, perfil.lastName].filter(Boolean).join(" ") ||
+    perfil.username ||
+    correo;
+  return { nombre: nombre.slice(0, 150), correo };
+}
+
+/** Solo los admins pueden cambiar roles. */
+export function esAdmin(role: UserRole): boolean {
+  return role === "admin";
 }
 
 /** Moderadores y admins pueden verificar locales. */
@@ -41,31 +66,26 @@ export async function obtenerUsuarioAutenticado(): Promise<
     );
   }
 
-  const correoPrincipal = perfilClerk.primaryEmailAddress;
-  if (!correoPrincipal || correoPrincipal.verification?.status !== "verified") {
+  const perfil = leerPerfilClerk(perfilClerk);
+  if (!perfil) {
     return Response.json(
       { error: "La cuenta debe tener un correo electronico verificado" },
       { status: 422 },
     );
   }
-  const correo = correoPrincipal.emailAddress;
-
-  const nombre =
-    [perfilClerk.firstName, perfilClerk.lastName].filter(Boolean).join(" ") ||
-    perfilClerk.username ||
-    correo;
+  const { nombre, correo } = perfil;
 
   const [usuario] = await db
     .insert(users)
     .values({
       clerkUserId: userId,
-      name: nombre.slice(0, 150),
+      name: nombre,
       email: correo,
     })
     .onConflictDoUpdate({
       target: users.clerkUserId,
       set: {
-        name: nombre.slice(0, 150),
+        name: nombre,
         email: correo,
         updatedAt: new Date(),
       },

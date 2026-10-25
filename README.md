@@ -157,7 +157,9 @@ se muestra en escala de grises para que resalten los marcadores.
 Los usuarios tienen un rol (`usuario`, `moderador` o `admin`). Moderadores y
 admins ven el enlace "Administración" en `/mis-publicaciones` y usan
 `/admin/usuarios` para tildar a los usuarios que son locales reales. La lista
-muestra solo usuarios que ya publicaron algo, con búsqueda por nombre o correo.
+muestra a todos los usuarios registrados en Clerk con un correo verificado (al
+abrir el panel se crean en PostgreSQL los que todavía no tenían fila), con
+búsqueda por nombre o correo.
 Para cualquier otro visitante la página muestra "no encontrado", y
 `PATCH /api/admin/usuarios/[id]` responde 401 sin sesión y 403 sin rol.
 
@@ -169,9 +171,11 @@ Al verificar se guarda el nombre que tiene el usuario en ese momento y es el
 que se publica con el tilde, aunque después lo cambie en Clerk; para aprobar
 un nombre nuevo hay que destildar y volver a tildar.
 
-Los roles no tienen pantalla: se asignan por SQL (SQL Editor de Supabase o
-`psql`). Para dar de alta al primer admin, copiar su `clerk_user_id` del
-dashboard de Clerk; funciona aunque todavía no haya publicado nada:
+Los admins también cambian el rol de cada usuario desde el panel
+(`PATCH /api/admin/usuarios/[id]/rol`, 403 para quien no es admin). Un admin no
+puede cambiar su propio rol, para no quedarse sin acceso. Solo el primer admin
+se asigna por SQL (SQL Editor de Supabase o `psql`), copiando su
+`clerk_user_id` del dashboard de Clerk:
 
 ```sql
 INSERT INTO users (clerk_user_id, name, email, role)
@@ -196,9 +200,7 @@ ON CONFLICT (clerk_user_id) DO UPDATE SET role = EXCLUDED.role;
   publicación. Las URLs externas no se tocan. Si la limpieza falla, la
   publicación igual queda eliminada y el error se registra en el servidor.
 - Locales verificados: panel en `/admin/usuarios`, prioridad en la búsqueda y
-  el mapa, y destacado con tilde. Siguen pendientes la gestión de roles desde
-  la interfaz, que un local pida la verificación y priorizarlos en el listado
-  del inicio.
+  el mapa, y destacado con tilde. Siguen pendientes que un local pida la verificación y priorizarlos en el listado del inicio.
 - Contactar al vendedor sigue pendiente. Las fotos que se quitan al editar
   quedan en Vercel Blob sin limpieza automática.
 - La subida de fotos a Vercel Blob está implementada para autos y servicios. Las fotos subidas que no llegan a

@@ -108,7 +108,7 @@ async function ListadoPublicaciones(): Promise<React.JSX.Element> {
       {esPersonal(usuario.role) ? (
         <p className="mt-4">
           <Link href="/admin/usuarios" className="enlace">
-            Administración: locales verificados
+            Administración de usuarios
           </Link>
         </p>
       ) : null}

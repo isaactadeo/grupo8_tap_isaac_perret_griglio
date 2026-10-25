@@ -1,6 +1,8 @@
+import { clerkClient } from "@clerk/nextjs/server";
 import { asc, eq, ilike, or, sql, count } from "drizzle-orm";
 import type { AdminUserSummary, UserRole } from "@/src/types";
 import { db } from "@/lib/db";
+import { leerPerfilClerk } from "@/lib/auth/usuario";
 import { users } from "@/lib/db/schema";
 import {
   listarAutosDeUsuario,
@@ -73,6 +75,55 @@ export async function listarUsuariosParaVerificar(filtros: {
   ]);
 
   return { items: filas.map(mapearResumen), total: conteo.total };
+}
+
+/**
+ * Crea en PostgreSQL los usuarios de Clerk que todavía no tienen fila, para
+ * que el panel liste a todos los registrados aunque no hayan publicado. No
+ * modifica filas existentes: el nombre y el correo se actualizan cuando el
+ * usuario publica.
+ */
+export async function sincronizarUsuariosClerk(): Promise<void> {
+  const clerk = await clerkClient();
+  const filas: { clerkUserId: string; name: string; email: string }[] = [];
+  for (let desplazamiento = 0; ; desplazamiento += 500) {
+    const { data } = await clerk.users.getUserList({
+      limit: 500,
+      offset: desplazamiento,
+    });
+    for (const perfil of data) {
+      const datos = leerPerfilClerk(perfil);
+      if (datos) {
+        filas.push({
+          clerkUserId: perfil.id,
+          name: datos.nombre,
+          email: datos.correo,
+        });
+      }
+    }
+    if (data.length < 500) {
+      break;
+    }
+  }
+  if (filas.length > 0) {
+    // Sin target: ignora tanto el clerk_user_id como el correo ya existentes.
+    await db.insert(users).values(filas).onConflictDoNothing();
+  }
+}
+
+/**
+ * Cambia el rol de un usuario. Devuelve null si el usuario no existe.
+ */
+export async function cambiarRolUsuario(
+  userId: string,
+  role: UserRole,
+): Promise<AdminUserSummary | null> {
+  const [fila] = await db
+    .update(users)
+    .set({ role, updatedAt: new Date() })
+    .where(eq(users.id, userId))
+    .returning(columnasResumen);
+  return fila ? mapearResumen(fila) : null;
 }
 
 /**
