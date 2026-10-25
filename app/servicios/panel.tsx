@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState, type SubmitEvent } from "react";
+import InteraccionesPublicacion from "@/app/componentes/interacciones-publicacion";
 import MapaServicios from "./mapa";
 import {
   InsigniaVerificado,
@@ -329,6 +330,10 @@ export default function PanelServicios(): React.JSX.Element {
                           {formatearPrecio(servicio.price)}
                         </span>
                       </p>
+                      <InteraccionesPublicacion
+                        tipo="servicios"
+                        id={servicio.id}
+                      />
                     </div>
                   </li>
                 ))}

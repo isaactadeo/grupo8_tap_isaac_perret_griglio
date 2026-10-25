@@ -43,7 +43,7 @@ const provinciaInicial: Provincia = "Santa Fe";
 interface RespuestaPublicacion {
   error?: string;
   guardado?: boolean;
-  item?: { title?: string };
+  item?: { id?: string; title?: string };
   detalles?: { campo: string; mensaje: string }[];
 }
 
@@ -63,10 +63,17 @@ function leerRespuesta(datos: unknown): RespuestaPublicacion {
     "item" in datos &&
     typeof datos.item === "object" &&
     datos.item !== null &&
-    "title" in datos.item &&
-    typeof datos.item.title === "string"
+    (("title" in datos.item && typeof datos.item.title === "string") ||
+      ("id" in datos.item && typeof datos.item.id === "string"))
   ) {
-    resultado.item = { title: datos.item.title };
+    resultado.item = {
+      ...("id" in datos.item && typeof datos.item.id === "string"
+        ? { id: datos.item.id }
+        : {}),
+      ...("title" in datos.item && typeof datos.item.title === "string"
+        ? { title: datos.item.title }
+        : {}),
+    };
   }
   if ("detalles" in datos && Array.isArray(datos.detalles)) {
     resultado.detalles = datos.detalles.flatMap((detalle) => {
@@ -118,6 +125,7 @@ export default function FormularioPublicarAuto({
   const [publicando, setPublicando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mensaje, setMensaje] = useState<string | null>(null);
+  const [urlPublicacion, setUrlPublicacion] = useState<string | null>(null);
 
   const subiendoFotos = fotos.some((foto) => foto.estado === "subiendo");
 
@@ -138,6 +146,7 @@ export default function FormularioPublicarAuto({
     evento.preventDefault();
     setError(null);
     setMensaje(null);
+    setUrlPublicacion(null);
 
     // Se calcula al enviar: leer la fecha durante el render rompe el prerender.
     const anioMaximo = new Date().getFullYear() + 1;
@@ -178,6 +187,9 @@ export default function FormularioPublicarAuto({
 
       if (!respuesta.ok) {
         if (datos.guardado === true) {
+          if (datos.item?.id) {
+            setUrlPublicacion(`/autos/${datos.item.id}`);
+          }
           setMensaje(
             `${datos.error ?? "El auto se guardó, pero no pudo agregarse a la búsqueda."} La publicación está guardada y la búsqueda todavía no está sincronizada.`,
           );
@@ -208,6 +220,9 @@ export default function FormularioPublicarAuto({
       setMensaje(
         `Auto publicado${datos.item?.title ? `: ${datos.item.title}` : ""}.`,
       );
+      if (datos.item?.id) {
+        setUrlPublicacion(`/autos/${datos.item.id}`);
+      }
       limpiarFormulario();
     } catch (fallo) {
       setError(
@@ -391,6 +406,11 @@ export default function FormularioPublicarAuto({
             <p role="status" className="font-medium text-tinta">
               {mensaje}
             </p>
+          ) : null}
+          {urlPublicacion ? (
+            <Link href={urlPublicacion} className="enlace inline-flex">
+              Ver publicación y sus comentarios
+            </Link>
           ) : null}
 
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-linea pt-5">

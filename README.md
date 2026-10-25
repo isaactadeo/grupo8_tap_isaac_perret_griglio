@@ -21,6 +21,10 @@ En un volumen PostgreSQL nuevo se ejecuta `database/init.sql` para crear las
 tablas y habilitar PostGIS. El script no se vuelve a ejecutar sobre un volumen
 ya inicializado.
 
+Si el volumen ya contiene la estructura anterior, aplicar una vez
+`database/migrations/0001_publication_interactions.sql` con `psql` para crear
+las tablas de comentarios y calificaciones. No es necesario recrear el volumen.
+
 ## Configuracion local
 
 Crear `.env.local` en la raiz con las variables necesarias:
@@ -128,6 +132,11 @@ destacados y con un tilde junto al nombre del vendedor. En el mapa su marcador
 es más grande, tiene borde dorado y queda por encima de los demás, y el popup
 muestra el nombre con el tilde.
 
+Cada publicación de servicio permite consultar y agregar comentarios y
+calificar con una a cinco estrellas. Se necesita iniciar sesión para comentar o
+calificar; cada usuario puede modificar su calificación. Los resultados muestran
+el promedio y la cantidad de calificaciones.
+
 ## Publicar autos
 
 La pagina `/autos/publicar` ofrece un formulario para usuarios autenticados.
@@ -182,6 +191,10 @@ INSERT INTO users (clerk_user_id, name, email, role)
 VALUES ('user_…', 'Nombre', 'correo@…', 'admin')
 ON CONFLICT (clerk_user_id) DO UPDATE SET role = EXCLUDED.role;
 ```
+
+Al publicar un auto se ofrece un enlace a su detalle en `/autos/[id]`, donde se
+pueden consultar y agregar comentarios y calificaciones con estrellas. Estas
+interacciones también están disponibles para las publicaciones de servicios.
 
 ## Estado de otras funcionalidades
 

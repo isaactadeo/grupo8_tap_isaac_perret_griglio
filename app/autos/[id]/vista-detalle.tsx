@@ -1,4 +1,5 @@
 import Link from "next/link";
+import InteraccionesPublicacion from "@/app/componentes/interacciones-publicacion";
 import BotonEliminar from "@/app/_componentes/boton-eliminar";
 import {
   formatearFecha,
@@ -161,6 +162,7 @@ export default function VistaDetalleAuto({
           </p>
         </section>
       </div>
+      <InteraccionesPublicacion tipo="autos" id={auto.id} />
     </article>
   );
 }
