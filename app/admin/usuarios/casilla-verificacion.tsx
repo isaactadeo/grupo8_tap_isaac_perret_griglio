@@ -97,7 +97,7 @@ export default function CasillaVerificacion({
   }
 
   return (
-    <div className="flex shrink-0 flex-col gap-1 sm:items-end">
+    <div className="flex flex-col gap-1 sm:items-end">
       <label className="flex items-center gap-2 font-medium">
         <input
           type="checkbox"

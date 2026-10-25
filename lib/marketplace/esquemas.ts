@@ -71,6 +71,10 @@ export type DatosActualizarServicio = z.infer<
   typeof esquemaActualizarServicio
 >;
 
+export const esquemaRolUsuario = z
+  .object({ role: z.enum(["usuario", "moderador", "admin"]) })
+  .strict();
+
 export const esquemaVerificacionUsuario = z
   .object({ verified: z.boolean() })
   .strict();

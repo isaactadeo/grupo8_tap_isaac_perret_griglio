@@ -3,11 +3,19 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import Encabezado from "@/app/_componentes/encabezado";
-import { esPersonal, obtenerUsuarioActual } from "@/lib/auth/usuario";
+import {
+  esAdmin,
+  esPersonal,
+  obtenerUsuarioActual,
+} from "@/lib/auth/usuario";
 import { formatearFecha } from "@/lib/marketplace/formato";
-import { listarUsuariosParaVerificar } from "@/lib/marketplace/verificacion";
+import {
+  listarUsuariosParaVerificar,
+  sincronizarUsuariosClerk,
+} from "@/lib/marketplace/verificacion";
 import type { AdminUserSummary } from "@/src/types";
 import CasillaVerificacion from "./casilla-verificacion";
+import SelectorRol from "./selector-rol";
 
 export const metadata: Metadata = {
   title: "Administración",
@@ -44,8 +52,11 @@ function enlacePagina(texto: string | undefined, pagina: number): string {
 
 function FilaUsuario({
   usuario,
+  puedeCambiarRol,
 }: {
   usuario: AdminUserSummary;
+  /** El usuario actual es admin y la fila no es la suya. */
+  puedeCambiarRol: boolean;
 }): React.JSX.Element {
   const nombrePublico = usuario.verifiedName ?? "Local verificado";
   return (
@@ -70,11 +81,20 @@ function FilaUsuario({
           </p>
         ) : null}
       </div>
-      <CasillaVerificacion
-        usuarioId={usuario.id}
-        nombre={usuario.name}
-        verificadoInicial={usuario.verifiedAt !== null}
-      />
+      <div className="flex shrink-0 flex-col gap-3 sm:items-end">
+        <CasillaVerificacion
+          usuarioId={usuario.id}
+          nombre={usuario.name}
+          verificadoInicial={usuario.verifiedAt !== null}
+        />
+        {puedeCambiarRol ? (
+          <SelectorRol
+            usuarioId={usuario.id}
+            nombre={usuario.name}
+            rolInicial={usuario.role}
+          />
+        ) : null}
+      </div>
     </li>
   );
 }
@@ -89,6 +109,13 @@ async function PanelUsuarios({
     notFound();
   }
 
+  try {
+    await sincronizarUsuariosClerk();
+  } catch (error) {
+    // Sin Clerk el panel sigue funcionando con los usuarios ya guardados.
+    console.error("No se pudieron sincronizar los usuarios de Clerk:", error);
+  }
+
   const parametros = await searchParams;
   const texto = leerTexto(parametros.q);
   const pagina = leerPagina(parametros.page);
@@ -101,10 +128,13 @@ async function PanelUsuarios({
 
   return (
     <>
-      <h1 className="titular text-titulo">Locales verificados</h1>
+      <h1 className="titular text-titulo">Usuarios</h1>
       <p className="mt-3 max-w-2xl text-lg text-gris">
         Tildá a los usuarios que son locales reales. Sus publicaciones aparecen
         primero en las búsquedas, destacadas y con un tilde junto al nombre.
+        {esAdmin(actual.role)
+          ? " Como admin, también podés cambiar el rol de cada usuario."
+          : ""}
       </p>
 
       <form
@@ -134,14 +164,18 @@ async function PanelUsuarios({
       {items.length > 0 ? (
         <ul className="mt-2 divide-y divide-linea border-y border-linea">
           {items.map((usuario) => (
-            <FilaUsuario key={usuario.id} usuario={usuario} />
+            <FilaUsuario
+              key={usuario.id}
+              usuario={usuario}
+              puedeCambiarRol={esAdmin(actual.role) && usuario.id !== actual.id}
+            />
           ))}
         </ul>
       ) : (
         <div className="mt-2 rounded-xl border border-dashed border-linea p-6">
           <p className="font-semibold">No hay usuarios para mostrar.</p>
           <p className="mt-1 text-gris">
-            Solo aparecen los usuarios que ya publicaron algo.
+            Solo aparecen los usuarios registrados con un correo verificado.
           </p>
         </div>
       )}
