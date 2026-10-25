@@ -11,7 +11,7 @@ import { useState, type FormEvent } from "react";
 interface RespuestaPublicacion {
   error?: string;
   guardado?: boolean;
-  item?: { title?: string };
+  item?: { id?: string; title?: string };
   detalles?: { campo: string; mensaje: string }[];
 }
 
@@ -31,10 +31,17 @@ function leerRespuesta(datos: unknown): RespuestaPublicacion {
     "item" in datos &&
     typeof datos.item === "object" &&
     datos.item !== null &&
-    "title" in datos.item &&
-    typeof datos.item.title === "string"
+    (("title" in datos.item && typeof datos.item.title === "string") ||
+      ("id" in datos.item && typeof datos.item.id === "string"))
   ) {
-    resultado.item = { title: datos.item.title };
+    resultado.item = {
+      ...("id" in datos.item && typeof datos.item.id === "string"
+        ? { id: datos.item.id }
+        : {}),
+      ...("title" in datos.item && typeof datos.item.title === "string"
+        ? { title: datos.item.title }
+        : {}),
+    };
   }
   if ("detalles" in datos && Array.isArray(datos.detalles)) {
     resultado.detalles = datos.detalles.flatMap((detalle) => {
@@ -67,6 +74,7 @@ export default function FormularioPublicarAuto(): React.JSX.Element {
   const [publicando, setPublicando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mensaje, setMensaje] = useState<string | null>(null);
+  const [urlPublicacion, setUrlPublicacion] = useState<string | null>(null);
 
   function limpiarFormulario() {
     setTitulo("");
@@ -85,6 +93,7 @@ export default function FormularioPublicarAuto(): React.JSX.Element {
     setPublicando(true);
     setError(null);
     setMensaje(null);
+    setUrlPublicacion(null);
 
     const fotosAuto = fotos
       .split(/\r?\n/)
@@ -155,6 +164,9 @@ export default function FormularioPublicarAuto(): React.JSX.Element {
 
       if (!respuesta.ok) {
         if (datos.guardado === true) {
+          if (datos.item?.id) {
+            setUrlPublicacion(`/autos/${datos.item.id}`);
+          }
           setMensaje(
             `${datos.error ?? "El auto se guardó, pero no pudo agregarse a la búsqueda."} La publicación está guardada y la búsqueda todavía no está sincronizada.`,
           );
@@ -178,6 +190,9 @@ export default function FormularioPublicarAuto(): React.JSX.Element {
       setMensaje(
         `Publicación creada${datos.item?.title ? `: ${datos.item.title}` : ""}.`,
       );
+      if (datos.item?.id) {
+        setUrlPublicacion(`/autos/${datos.item.id}`);
+      }
       limpiarFormulario();
     } catch (fallo) {
       setError(
@@ -351,6 +366,14 @@ export default function FormularioPublicarAuto(): React.JSX.Element {
           <p role="status" className="text-sm text-teal-800">
             {mensaje}
           </p>
+        ) : null}
+        {urlPublicacion ? (
+          <Link
+            href={urlPublicacion}
+            className="inline-flex rounded-lg border border-teal-800 px-4 py-2 text-sm font-semibold text-teal-800 hover:bg-teal-50"
+          >
+            Ver publicación y sus comentarios
+          </Link>
         ) : null}
 
         <div className="flex flex-wrap items-center justify-between gap-3">

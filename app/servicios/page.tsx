@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
+import InteraccionesPublicacion from "@/app/componentes/interacciones-publicacion";
 import MapaServicios from "./mapa";
 import type {
   GeoCoordinates,
@@ -370,6 +371,10 @@ export default function PaginaServicios(): React.JSX.Element {
                     <p className="mt-2 text-sm font-medium">
                       ${Number(servicio.price).toLocaleString("es-AR")}
                     </p>
+                    <InteraccionesPublicacion
+                      tipo="servicios"
+                      id={servicio.id}
+                    />
                   </div>
                 </article>
               ))}
