@@ -1,15 +1,23 @@
-import { and, asc, count, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, avg, count, desc, eq, inArray, sql } from "drizzle-orm";
 import type {
   Car,
   GeoCoordinates,
+  ListingType,
+  PublicationComment,
+  RatingSummary,
   Service,
 } from "@/src/types";
 import { db } from "@/lib/db";
 import {
+  carComments,
   carImages,
+  carRatings,
   cars,
+  serviceComments,
   serviceImages,
+  serviceRatings,
   services,
+  users,
 } from "@/lib/db/schema";
 import type {
   DatosActualizarAuto,
@@ -442,4 +450,201 @@ export async function eliminarServicio(
     .where(and(eq(services.id, id), eq(services.userId, userId)))
     .returning({ id: services.id });
   return eliminados.length > 0;
+}
+
+export async function existePublicacion(
+  tipo: ListingType,
+  id: string,
+): Promise<boolean> {
+  const [publicacion] =
+    tipo === "car"
+      ? await db
+          .select({ id: cars.id })
+          .from(cars)
+          .where(eq(cars.id, id))
+          .limit(1)
+      : await db
+          .select({ id: services.id })
+          .from(services)
+          .where(eq(services.id, id))
+          .limit(1);
+  return publicacion !== undefined;
+}
+
+export async function obtenerComentariosPublicacion(
+  tipo: ListingType,
+  id: string,
+): Promise<PublicationComment[]> {
+  if (tipo === "car") {
+    const filas = await db
+      .select({
+        id: carComments.id,
+        content: carComments.content,
+        authorName: users.name,
+        createdAt: carComments.createdAt,
+      })
+      .from(carComments)
+      .innerJoin(users, eq(carComments.userId, users.id))
+      .where(eq(carComments.carId, id))
+      .orderBy(desc(carComments.createdAt))
+      .limit(50);
+    return filas.map((fila) => ({
+      ...fila,
+      createdAt: fila.createdAt.toISOString(),
+    }));
+  }
+
+  const filas = await db
+    .select({
+      id: serviceComments.id,
+      content: serviceComments.content,
+      authorName: users.name,
+      createdAt: serviceComments.createdAt,
+    })
+    .from(serviceComments)
+    .innerJoin(users, eq(serviceComments.userId, users.id))
+    .where(eq(serviceComments.serviceId, id))
+    .orderBy(desc(serviceComments.createdAt))
+    .limit(50);
+  return filas.map((fila) => ({
+    ...fila,
+    createdAt: fila.createdAt.toISOString(),
+  }));
+}
+
+export async function crearComentarioPublicacion(
+  tipo: ListingType,
+  id: string,
+  userId: string,
+  content: string,
+): Promise<PublicationComment | null> {
+  if (!(await existePublicacion(tipo, id))) {
+    return null;
+  }
+
+  const [usuario] = await db
+    .select({ name: users.name })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+  if (!usuario) {
+    throw new Error("No se encontro el usuario del comentario");
+  }
+
+  const [comentario] =
+    tipo === "car"
+      ? await db
+          .insert(carComments)
+          .values({ carId: id, userId, content })
+          .returning({
+            id: carComments.id,
+            content: carComments.content,
+            createdAt: carComments.createdAt,
+          })
+      : await db
+          .insert(serviceComments)
+          .values({ serviceId: id, userId, content })
+          .returning({
+            id: serviceComments.id,
+            content: serviceComments.content,
+            createdAt: serviceComments.createdAt,
+          });
+
+  if (!comentario) {
+    throw new Error("No se pudo guardar el comentario");
+  }
+  return {
+    ...comentario,
+    authorName: usuario.name,
+    createdAt: comentario.createdAt.toISOString(),
+  };
+}
+
+export async function obtenerResumenCalificaciones(
+  tipo: ListingType,
+  id: string,
+  userId: string | null = null,
+): Promise<RatingSummary> {
+  if (tipo === "car") {
+    const [resumen] = await db
+      .select({
+        averageRating: avg(carRatings.stars),
+        ratingCount: count(),
+      })
+      .from(carRatings)
+      .where(eq(carRatings.carId, id));
+    const [calificacionUsuario] = userId
+      ? await db
+          .select({ stars: carRatings.stars })
+          .from(carRatings)
+          .where(
+            and(
+              eq(carRatings.carId, id),
+              eq(carRatings.userId, userId),
+            ),
+          )
+          .limit(1)
+      : [];
+    return {
+      averageRating: Number(resumen?.averageRating ?? 0),
+      ratingCount: resumen?.ratingCount ?? 0,
+      userRating: calificacionUsuario?.stars ?? null,
+    };
+  }
+
+  const [resumen] = await db
+    .select({
+      averageRating: avg(serviceRatings.stars),
+      ratingCount: count(),
+    })
+    .from(serviceRatings)
+    .where(eq(serviceRatings.serviceId, id));
+  const [calificacionUsuario] = userId
+    ? await db
+        .select({ stars: serviceRatings.stars })
+        .from(serviceRatings)
+        .where(
+          and(
+            eq(serviceRatings.serviceId, id),
+            eq(serviceRatings.userId, userId),
+          ),
+        )
+        .limit(1)
+    : [];
+  return {
+    averageRating: Number(resumen?.averageRating ?? 0),
+    ratingCount: resumen?.ratingCount ?? 0,
+    userRating: calificacionUsuario?.stars ?? null,
+  };
+}
+
+export async function calificarPublicacion(
+  tipo: ListingType,
+  id: string,
+  userId: string,
+  stars: number,
+): Promise<RatingSummary | null> {
+  if (!(await existePublicacion(tipo, id))) {
+    return null;
+  }
+
+  if (tipo === "car") {
+    await db
+      .insert(carRatings)
+      .values({ carId: id, userId, stars })
+      .onConflictDoUpdate({
+        target: [carRatings.carId, carRatings.userId],
+        set: { stars, updatedAt: new Date() },
+      });
+  } else {
+    await db
+      .insert(serviceRatings)
+      .values({ serviceId: id, userId, stars })
+      .onConflictDoUpdate({
+        target: [serviceRatings.serviceId, serviceRatings.userId],
+        set: { stars, updatedAt: new Date() },
+      });
+  }
+
+  return obtenerResumenCalificaciones(tipo, id, userId);
 }

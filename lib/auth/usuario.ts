@@ -1,10 +1,32 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
+import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 
 export interface UsuarioAutenticado {
   id: string;
   clerkUserId: string;
+}
+
+export async function obtenerIdUsuarioOpcional(): Promise<string | null> {
+  if (
+    !process.env.CLERK_SECRET_KEY ||
+    !process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+  ) {
+    return null;
+  }
+
+  const { userId } = await auth();
+  if (!userId) {
+    return null;
+  }
+
+  const [usuario] = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(eq(users.clerkUserId, userId))
+    .limit(1);
+  return usuario?.id ?? null;
 }
 
 export async function obtenerUsuarioAutenticado(): Promise<
