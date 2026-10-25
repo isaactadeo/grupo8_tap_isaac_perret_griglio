@@ -10,6 +10,15 @@ if (!connectionString) {
 
 // prepare: false porque el pooler de Supabase en modo transacción (puerto
 // 6543), el recomendado para Vercel, no admite sentencias preparadas.
-const client = postgres(connectionString, { max: 1, prepare: false });
+// Vercel reutiliza la función entre solicitudes y el pooler corta en silencio
+// las conexiones inactivas: sin idle_timeout la siguiente consulta esperaba en
+// un socket muerto hasta el timeout de la función (300 s).
+const client = postgres(connectionString, {
+  max: 1,
+  prepare: false,
+  idle_timeout: 20,
+  max_lifetime: 60 * 5,
+  connect_timeout: 10,
+});
 
 export const db = drizzle(client, { schema });
