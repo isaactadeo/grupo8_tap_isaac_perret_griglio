@@ -27,17 +27,30 @@ las tablas de comentarios y calificaciones. No es necesario recrear el volumen.
 
 ## Configuracion local
 
-Crear `.env.local` en la raiz con las variables necesarias:
+Copiar `.env.example` como `.env.local` y completar las variables:
 
 ```env
 DATABASE_URL=postgres://USUARIO:CONTRASENA@localhost:5432/rafaela
 ELASTICSEARCH_URL=http://localhost:9200
+ELASTICSEARCH_USERNAME=
+ELASTICSEARCH_PASSWORD=
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=
 CLERK_SECRET_KEY=
 ```
 
+En desarrollo local Elasticsearch no requiere usuario ni contraseña; esas
+variables solo son necesarias para un endpoint protegido y deben completarse
+juntas.
+
 Configurar Clerk para habilitar la autenticacion y las publicaciones. Los
 archivos `.env*` no deben subirse al repositorio.
+
+## Validacion
+
+```bash
+npx tsc --noEmit
+npm run lint
+```
 
 ## Servicios vehiculares
 
