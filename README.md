@@ -132,6 +132,9 @@ destacados y con un tilde junto al nombre del vendedor. En el mapa su marcador
 es más grande, tiene borde dorado y queda por encima de los demás, y el popup
 muestra el nombre con el tilde.
 
+Los servicios con ubicación tienen un botón "Cómo llegar" que abre una ruta en
+Google Maps desde la ubicación actual del usuario.
+
 Cada publicación de servicio permite consultar y agregar comentarios y
 calificar con una a cinco estrellas. Se necesita iniciar sesión para comentar o
 calificar; cada usuario puede modificar su calificación. Los resultados muestran

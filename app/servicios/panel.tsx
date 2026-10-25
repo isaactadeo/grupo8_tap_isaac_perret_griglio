@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState, type SubmitEvent } from "react";
 import InteraccionesPublicacion from "@/app/componentes/interacciones-publicacion";
 import MapaServicios from "./mapa";
+import { crearEnlaceComoLlegar } from "./enlace-direcciones";
 import {
   InsigniaVerificado,
   MarcaVerificado,
@@ -330,6 +331,19 @@ export default function PanelServicios(): React.JSX.Element {
                           {formatearPrecio(servicio.price)}
                         </span>
                       </p>
+                      {servicio.location ? (
+                        <a
+                          href={crearEnlaceComoLlegar(
+                            servicio.location.lat,
+                            servicio.location.lon,
+                          )}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="boton boton-secundario mt-3 min-h-9 px-3 py-1.5 text-sm"
+                        >
+                          Cómo llegar
+                        </a>
+                      ) : null}
                       <InteraccionesPublicacion
                         tipo="servicios"
                         id={servicio.id}

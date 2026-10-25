@@ -6,6 +6,7 @@ import type {
   GeoCoordinates,
   MarketplaceSearchDocument,
 } from "@/src/types";
+import { crearEnlaceComoLlegar } from "./enlace-direcciones";
 
 interface MapaServiciosProps {
   items: MarketplaceSearchDocument[];
@@ -122,6 +123,15 @@ export default function MapaServicios({
           const tipo = document.createElement("div");
           tipo.textContent = categoria === "taller" ? "Taller" : "Lavadero";
           popup.append(nombre, tipo);
+          const enlaceComoLlegar = document.createElement("a");
+          enlaceComoLlegar.href = crearEnlaceComoLlegar(
+            servicio.location.lat,
+            servicio.location.lon,
+          );
+          enlaceComoLlegar.target = "_blank";
+          enlaceComoLlegar.rel = "noopener noreferrer";
+          enlaceComoLlegar.textContent = "Cómo llegar";
+          popup.append(enlaceComoLlegar);
           const vendedor =
             servicio.ownerName ?? (verificado ? "Local verificado" : null);
           if (vendedor) {
