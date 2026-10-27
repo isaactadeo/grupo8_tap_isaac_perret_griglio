@@ -350,7 +350,7 @@ export default function PanelServicios(): React.JSX.Element {
             />
             {cargandoRuta || ruta || errorRuta ? (
               <section
-                className="absolute inset-x-3 bottom-3 z-[1000] rounded-2xl border border-white/80 bg-papel/95 p-4 text-sm shadow-xl backdrop-blur sm:inset-x-auto sm:bottom-4 sm:left-4 sm:w-80"
+                className="mt-3 rounded-2xl border border-hueso-hondo bg-papel p-4 text-sm shadow-sm"
                 aria-live="polite"
                 aria-label="Resumen de ruta"
               >
@@ -407,7 +407,7 @@ export default function PanelServicios(): React.JSX.Element {
                 </div>
                 {ruta ? (
                   <>
-                    <div className="mt-4 grid grid-cols-2 gap-2">
+                    <div className="mt-4 grid grid-cols-2 gap-2 sm:max-w-md">
                       <div className="rounded-xl bg-hueso p-3">
                         <p className="text-xs font-medium text-gris">
                           Distancia
@@ -432,7 +432,7 @@ export default function PanelServicios(): React.JSX.Element {
                       )}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="boton boton-secundario mt-3 w-full rounded-xl"
+                      className="boton boton-secundario mt-3 w-full rounded-xl sm:w-auto"
                     >
                       Abrir en Google Maps
                     </a>

@@ -291,6 +291,10 @@ export default function MapaServicios({
         }).addTo(capaRuta);
         const ultimaCoordenada =
           ruta.geometria.coordinates[ruta.geometria.coordinates.length - 1];
+        // Leaflet interpreta los strings como HTML y el título puede venir de
+        // la URL (destinoNombre): se pasa como nodo de texto.
+        const etiqueta = document.createElement("span");
+        etiqueta.textContent = ruta.titulo;
         L.circleMarker([ultimaCoordenada[1], ultimaCoordenada[0]], {
           radius: 6,
           color: "#2563eb",
@@ -298,7 +302,7 @@ export default function MapaServicios({
           fillColor: "#ffffff",
           fillOpacity: 1,
         })
-          .bindTooltip(ruta.titulo, { direction: "top" })
+          .bindTooltip(etiqueta, { direction: "top" })
           .addTo(capaRuta);
         mapa.fitBounds(linea.getBounds(), { padding: [24, 24] });
       })
