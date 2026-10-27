@@ -213,7 +213,8 @@ export async function listarAutos(
     db
       .select(columnasAuto)
       .from(cars)
-      .orderBy(desc(cars.createdAt))
+      // Igual que en la búsqueda: los locales verificados van primero.
+      .orderBy(desc(columnasAuto.ownerVerified), desc(cars.createdAt))
       .limit(tamanoPagina)
       .offset(desplazamiento),
     db.select({ total: count() }).from(cars),
@@ -366,7 +367,8 @@ export async function listarServicios(
     db
       .select(columnasServicio)
       .from(services)
-      .orderBy(desc(services.createdAt))
+      // Igual que en la búsqueda: los locales verificados van primero.
+      .orderBy(desc(columnasServicio.ownerVerified), desc(services.createdAt))
       .limit(tamanoPagina)
       .offset(desplazamiento),
     db.select({ total: count() }).from(services),
