@@ -169,11 +169,12 @@ configuración de entorno de Preview; no habilitar esta opción en Production.
 
 ## Interfaz
 
-La interfaz sigue una línea minimalista: monocromo cálido (fondo hueso,
-superficies blancas, bordes de 1px), botones negros y color solo con
-significado, en tonos pastel (talleres, lavaderos, avisos y errores). Los
-títulos usan Newsreader (serif) y la interfaz y los precios Geist, cargadas
-con `next/font`. Los tokens están en `app/globals.css`
+La interfaz sigue una línea de concesionaria: azul marino como base (hero,
+tarjeta de venta y pie), rojo de marca para las acciones principales, fondo
+gris azulado frío y superficies blancas con bordes de 1px. El resto del color
+tiene significado (talleres, lavaderos, avisos y errores). Toda la tipografía
+es Geist, cargada con `next/font`; los títulos van en negrita. La foto del
+inicio es de Unsplash (licencia libre). Los tokens están en `app/globals.css`
 (bloque `@theme`) y los componentes compartidos en `app/_componentes/`. El mapa
 se muestra en escala de grises para que resalten los marcadores.
 
