@@ -7,6 +7,8 @@ import type { PublicationComment, RatingSummary } from "@/src/types";
 interface InteraccionesPublicacionProps {
   tipo: "autos" | "servicios";
   id: string;
+  /** Oculta los comentarios detrás de un botón; se cargan al abrirlos. */
+  plegable?: boolean;
 }
 
 function leerMensajeError(datos: unknown, alternativo: string): string {
@@ -54,7 +56,38 @@ function esResumenCalificaciones(valor: unknown): valor is RatingSummary {
 export default function InteraccionesPublicacion({
   tipo,
   id,
+  plegable = false,
 }: InteraccionesPublicacionProps): React.JSX.Element {
+  const [abierto, setAbierto] = useState(false);
+
+  if (!plegable) {
+    return <PanelInteracciones tipo={tipo} id={id} />;
+  }
+
+  return (
+    <section className="mt-4 border-t border-zinc-200 pt-3">
+      <button
+        type="button"
+        aria-expanded={abierto}
+        onClick={() => setAbierto((actual) => !actual)}
+        className="text-sm font-semibold text-teal-800 hover:text-teal-700"
+      >
+        {abierto ? "Ocultar comentarios" : "Mostrar comentarios"}
+      </button>
+      {abierto ? <PanelInteracciones tipo={tipo} id={id} sinTitulo /> : null}
+    </section>
+  );
+}
+
+function PanelInteracciones({
+  tipo,
+  id,
+  sinTitulo = false,
+}: {
+  tipo: "autos" | "servicios";
+  id: string;
+  sinTitulo?: boolean;
+}): React.JSX.Element {
   const [cargando, setCargando] = useState(true);
   const [comentarios, setComentarios] = useState<PublicationComment[]>([]);
   const [resumen, setResumen] = useState<RatingSummary | null>(null);
@@ -275,10 +308,14 @@ export default function InteraccionesPublicacion({
   }
 
   return (
-    <section className="mt-4 border-t border-zinc-200 pt-3">
-      <h3 className="text-sm font-semibold text-teal-800">
-        Comentarios y calificación
-      </h3>
+    <section
+      className={sinTitulo ? "mt-3" : "mt-4 border-t border-zinc-200 pt-3"}
+    >
+      {sinTitulo ? null : (
+        <h3 className="text-sm font-semibold text-teal-800">
+          Comentarios y calificación
+        </h3>
+      )}
       {cargando ? (
         <p className="mt-2 text-sm text-zinc-500">Cargando comentarios…</p>
       ) : null}

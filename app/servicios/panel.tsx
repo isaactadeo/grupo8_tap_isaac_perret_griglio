@@ -699,6 +699,7 @@ export default function PanelServicios({
                         ) : null}
                         <InteraccionesPublicacion
                           tipo="servicios"
+                          plegable
                           id={servicio.id}
                         />
                       </div>
