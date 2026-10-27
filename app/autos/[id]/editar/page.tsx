@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { z } from "zod";
 import FormularioPublicarAuto from "@/app/autos/publicar/formulario";
-import { obtenerIdUsuarioActual } from "@/lib/auth/usuario";
+import { esAdmin, obtenerUsuarioActual } from "@/lib/auth/usuario";
 import { obtenerAuto } from "@/lib/marketplace/repositorio";
 
 export const metadata: Metadata = {
@@ -23,8 +23,8 @@ async function EdicionAuto({
     notFound();
   }
 
-  const usuarioId = await obtenerIdUsuarioActual();
-  if (!usuarioId) {
+  const usuario = await obtenerUsuarioActual();
+  if (!usuario) {
     return (
       <p className="mt-6 text-lg">
         <Link href="/sign-in" className="enlace">
@@ -36,8 +36,8 @@ async function EdicionAuto({
   }
 
   const auto = await obtenerAuto(id);
-  // Igual que la API: un auto ajeno se trata como inexistente.
-  if (!auto || auto.userId !== usuarioId) {
+  // Igual que la API: un auto ajeno se trata como inexistente, salvo para admins.
+  if (!auto || (auto.userId !== usuario.id && !esAdmin(usuario.role))) {
     notFound();
   }
 

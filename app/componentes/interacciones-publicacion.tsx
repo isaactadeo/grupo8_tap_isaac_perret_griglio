@@ -31,6 +31,8 @@ function esComentario(valor: unknown): valor is PublicationComment {
     typeof valor.content === "string" &&
     "authorName" in valor &&
     typeof valor.authorName === "string" &&
+    "authorRating" in valor &&
+    (typeof valor.authorRating === "number" || valor.authorRating === null) &&
     "createdAt" in valor &&
     typeof valor.createdAt === "string"
   );
@@ -62,6 +64,11 @@ export default function InteraccionesPublicacion({
   const [error, setError] = useState<string | null>(null);
   const [mensaje, setMensaje] = useState<string | null>(null);
   const [requiereSesion, setRequiereSesion] = useState(false);
+  const [puedeModerar, setPuedeModerar] = useState(false);
+  const [confirmandoEliminar, setConfirmandoEliminar] = useState<
+    string | null
+  >(null);
+  const [eliminando, setEliminando] = useState(false);
 
   useEffect(() => {
     let cancelado = false;
@@ -105,6 +112,10 @@ export default function InteraccionesPublicacion({
 
         if (cancelado) return;
         setComentarios(datosComentarios.items);
+        setPuedeModerar(
+          "puedeModerar" in datosComentarios &&
+            datosComentarios.puedeModerar === true,
+        );
         setResumen(datosCalificacion.resumen);
       } catch (fallo) {
         if (cancelado) return;
@@ -171,6 +182,38 @@ export default function InteraccionesPublicacion({
     }
   }
 
+  async function eliminarComentario(comentarioId: string) {
+    setEliminando(true);
+    setError(null);
+    setMensaje(null);
+
+    try {
+      const respuesta = await fetch(
+        `/api/publicaciones/${tipo}/${id}/comentarios/${comentarioId}`,
+        { method: "DELETE" },
+      );
+      if (!respuesta.ok) {
+        const datos: unknown = await respuesta.json().catch(() => null);
+        throw new Error(
+          leerMensajeError(datos, "No se pudo eliminar el comentario."),
+        );
+      }
+      setComentarios((actuales) =>
+        actuales.filter((item) => item.id !== comentarioId),
+      );
+      setMensaje("Comentario eliminado.");
+    } catch (fallo) {
+      setError(
+        fallo instanceof Error
+          ? fallo.message
+          : "No se pudo eliminar el comentario.",
+      );
+    } finally {
+      setEliminando(false);
+      setConfirmandoEliminar(null);
+    }
+  }
+
   async function guardarCalificacion(stars: number) {
     setEnviandoCalificacion(true);
     setError(null);
@@ -204,6 +247,22 @@ export default function InteraccionesPublicacion({
 
       setResumen(datos.resumen);
       setMensaje("Calificación guardada. Puedes cambiarla cuando quieras.");
+
+      // Las estrellas se muestran también en los comentarios del autor.
+      const respuestaComentarios = await fetch(
+        `/api/publicaciones/${tipo}/${id}/comentarios`,
+      );
+      const datosComentarios: unknown = await respuestaComentarios.json();
+      if (
+        respuestaComentarios.ok &&
+        typeof datosComentarios === "object" &&
+        datosComentarios !== null &&
+        "items" in datosComentarios &&
+        Array.isArray(datosComentarios.items) &&
+        datosComentarios.items.every(esComentario)
+      ) {
+        setComentarios(datosComentarios.items);
+      }
     } catch (fallo) {
       setError(
         fallo instanceof Error
@@ -359,12 +418,64 @@ export default function InteraccionesPublicacion({
               comentarios.map((item) => (
                 <article
                   key={item.id}
-                  className="rounded-lg bg-zinc-50 p-3 text-sm"
+                  className="border-b border-zinc-200 pb-3 text-sm last:border-b-0"
                 >
-                  <div className="flex flex-wrap items-baseline justify-between gap-x-3">
+                  <div className="flex items-center gap-3">
+                    <span
+                      aria-hidden="true"
+                      className="flex size-9 shrink-0 items-center justify-center rounded-full bg-teal-800 font-semibold text-white"
+                    >
+                      {item.authorName.trim().charAt(0).toUpperCase() || "?"}
+                    </span>
                     <p className="font-semibold text-zinc-800">
                       {item.authorName}
                     </p>
+                    {puedeModerar ? (
+                      <div className="ml-auto flex gap-2 text-xs">
+                        {confirmandoEliminar === item.id ? (
+                          <>
+                            <button
+                              type="button"
+                              disabled={eliminando}
+                              onClick={() => void eliminarComentario(item.id)}
+                              className="font-semibold text-red-700 hover:underline disabled:opacity-60"
+                            >
+                              {eliminando ? "Eliminando…" : "Confirmar"}
+                            </button>
+                            <button
+                              type="button"
+                              disabled={eliminando}
+                              onClick={() => setConfirmandoEliminar(null)}
+                              className="text-zinc-600 hover:underline disabled:opacity-60"
+                            >
+                              Cancelar
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setConfirmandoEliminar(item.id)}
+                            className="text-zinc-500 hover:text-red-700 hover:underline"
+                          >
+                            Eliminar
+                          </button>
+                        )}
+                      </div>
+                    ) : null}
+                  </div>
+                  <div className="mt-2 flex items-center gap-2">
+                    {item.authorRating ? (
+                      <span
+                        role="img"
+                        aria-label={`${item.authorRating} de 5 estrellas`}
+                        className="tracking-tight text-amber-500"
+                      >
+                        {"★".repeat(item.authorRating)}
+                        <span className="text-zinc-300">
+                          {"★".repeat(5 - item.authorRating)}
+                        </span>
+                      </span>
+                    ) : null}
                     <time
                       dateTime={item.createdAt}
                       className="text-xs text-zinc-500"

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { z } from "zod";
-import { obtenerIdUsuarioActual } from "@/lib/auth/usuario";
+import { esAdmin, obtenerUsuarioActual } from "@/lib/auth/usuario";
 import { obtenerServicio } from "@/lib/marketplace/repositorio";
 import FormularioServicio from "@/app/servicios/formulario-servicio";
 
@@ -23,8 +23,8 @@ async function EdicionServicio({
     notFound();
   }
 
-  const usuarioId = await obtenerIdUsuarioActual();
-  if (!usuarioId) {
+  const usuario = await obtenerUsuarioActual();
+  if (!usuario) {
     return (
       <p className="mt-6 text-lg">
         <Link href="/sign-in" className="enlace">
@@ -36,8 +36,8 @@ async function EdicionServicio({
   }
 
   const servicio = await obtenerServicio(id);
-  // Igual que la API: un servicio ajeno se trata como inexistente.
-  if (!servicio || servicio.userId !== usuarioId) {
+  // Igual que la API: un servicio ajeno se trata como inexistente, salvo para admins.
+  if (!servicio || (servicio.userId !== usuario.id && !esAdmin(usuario.role))) {
     notFound();
   }
 

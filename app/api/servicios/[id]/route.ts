@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { eliminarFotosSinUso } from "@/lib/marketplace/limpieza-fotos";
-import { obtenerUsuarioAutenticado } from "@/lib/auth/usuario";
+import { esAdmin, obtenerUsuarioAutenticado } from "@/lib/auth/usuario";
 import {
   esRespuesta,
   leerJson,
@@ -82,6 +82,7 @@ export async function PATCH(
       identificador.id,
       usuario.id,
       resultadoJson.datos,
+      esAdmin(usuario.role),
     );
     if (!servicio) {
       return Response.json(
@@ -130,7 +131,11 @@ export async function DELETE(
       return usuario;
     }
 
-    const fotos = await eliminarServicio(identificador.id, usuario.id);
+    const fotos = await eliminarServicio(
+      identificador.id,
+      usuario.id,
+      esAdmin(usuario.role),
+    );
     if (!fotos) {
       return Response.json(
         { error: "No se encontro el servicio" },

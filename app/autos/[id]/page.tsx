@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { cache, Suspense } from "react";
 import { z } from "zod";
 import { formatearPrecio } from "@/lib/marketplace/formato";
-import { obtenerIdUsuarioActual } from "@/lib/auth/usuario";
+import { esAdmin, obtenerUsuarioActual } from "@/lib/auth/usuario";
 import type { Car } from "@/src/types";
 import VistaDetalleAuto from "./vista-detalle";
 
@@ -64,9 +64,16 @@ async function DetalleAuto({
   }
 
   // Si falla la sesión, la publicación se muestra igual, sin acciones de edición.
-  const usuarioId = await obtenerIdUsuarioActual().catch(() => null);
+  const usuario = await obtenerUsuarioActual().catch(() => null);
+  const esPropietario = usuario?.id === auto.userId;
   return (
-    <VistaDetalleAuto auto={auto} esPropietario={usuarioId === auto.userId} />
+    <VistaDetalleAuto
+      auto={auto}
+      esPropietario={esPropietario}
+      puedeAdministrar={
+        esPropietario || (usuario !== null && esAdmin(usuario.role))
+      }
+    />
   );
 }
 

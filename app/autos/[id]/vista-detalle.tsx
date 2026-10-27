@@ -13,9 +13,12 @@ import GaleriaFotos from "./galeria";
 export default function VistaDetalleAuto({
   auto,
   esPropietario = false,
+  puedeAdministrar = esPropietario,
 }: {
   auto: Car;
   esPropietario?: boolean;
+  /** Dueño o admin: puede editar y eliminar la publicación. */
+  puedeAdministrar?: boolean;
 }): React.JSX.Element {
   const marcaModelo = `${auto.make} ${auto.model}`;
   const ubicacion = formatearUbicacion(auto.city, auto.province);
@@ -91,9 +94,13 @@ export default function VistaDetalleAuto({
             </div>
           ) : null}
 
-          {esPropietario ? (
+          {puedeAdministrar ? (
             <div className="mt-5 rounded-xl border border-linea bg-papel p-4">
-              <p className="text-sm font-semibold">Esta publicación es tuya.</p>
+              <p className="text-sm font-semibold">
+                {esPropietario
+                  ? "Esta publicación es tuya."
+                  : "Administración: podés editar o eliminar esta publicación."}
+              </p>
               <div className="mt-3 flex flex-wrap items-start gap-2">
                 <Link
                   href={`/autos/${auto.id}/editar`}

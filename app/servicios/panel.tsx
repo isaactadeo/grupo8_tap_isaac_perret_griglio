@@ -10,6 +10,7 @@ import {
   type SubmitEvent,
 } from "react";
 import InteraccionesPublicacion from "@/app/componentes/interacciones-publicacion";
+import BotonEliminar from "@/app/_componentes/boton-eliminar";
 import MapaServicios from "./mapa";
 import { crearEnlaceComoLlegar } from "./enlace-direcciones";
 import {
@@ -59,7 +60,12 @@ function leerMensajeError(datos: unknown, mensajeAlternativo: string): string {
   return mensajeAlternativo;
 }
 
-export default function PanelServicios(): React.JSX.Element {
+export default function PanelServicios({
+  puedeAdministrar = false,
+}: {
+  /** Admins: editar y eliminar cualquier servicio desde el listado. */
+  puedeAdministrar?: boolean;
+}): React.JSX.Element {
   const [termino, setTermino] = useState("");
   const [categoria, setCategoria] = useState<ServiceType | "">("");
   const [vistaActual, setVistaActual] = useState<MapViewport | null>(null);
@@ -661,6 +667,34 @@ export default function PanelServicios(): React.JSX.Element {
                             >
                               Abrir en Google Maps
                             </a>
+                          </div>
+                        ) : null}
+                        {puedeAdministrar ? (
+                          <div className="mt-3 flex flex-wrap items-start gap-2">
+                            <Link
+                              href={`/servicios/${servicio.id}/editar`}
+                              className="boton boton-secundario min-h-9 px-3 py-1.5 text-sm"
+                            >
+                              Editar
+                            </Link>
+                            <BotonEliminar
+                              tipo="servicio"
+                              id={servicio.id}
+                              titulo={servicio.title}
+                              alEliminar={() =>
+                                setResultado((actual) =>
+                                  actual
+                                    ? {
+                                        ...actual,
+                                        items: actual.items.filter(
+                                          (item) => item.id !== servicio.id,
+                                        ),
+                                        total: Math.max(0, actual.total - 1),
+                                      }
+                                    : actual,
+                                )
+                              }
+                            />
                           </div>
                         ) : null}
                         <InteraccionesPublicacion
