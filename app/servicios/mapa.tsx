@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Map as LeafletMap } from "leaflet";
 import type {
   GeoCoordinates,
+  MapViewport,
   MarketplaceSearchDocument,
 } from "@/src/types";
 import type { RutaVehicular } from "./rutas";
@@ -11,11 +12,12 @@ import { crearEnlaceComoLlegar } from "./enlace-direcciones";
 
 interface MapaServiciosProps {
   items: MarketplaceSearchDocument[];
-  centroBusqueda: GeoCoordinates | null;
-  radioKm: number;
   ubicacionFormulario: GeoCoordinates | null;
+  ubicacionUsuario?: GeoCoordinates | null;
+  centrarEnUbicacion?: GeoCoordinates | null;
   modoSeleccion: "busqueda" | "publicacion" | null;
-  onSeleccionarUbicacion: (ubicacion: GeoCoordinates) => void;
+  onSeleccionarUbicacion?: (ubicacion: GeoCoordinates) => void;
+  onCambiarVista?: (vista: MapViewport) => void;
   ruta?: RutaVehicular | null;
   onSolicitarRuta?: (destino: GeoCoordinates, titulo: string) => void;
 }
@@ -24,23 +26,30 @@ const centroRafaela: GeoCoordinates = { lat: -31.2503, lng: -61.4867 };
 
 export default function MapaServicios({
   items,
-  centroBusqueda,
-  radioKm,
   ubicacionFormulario,
+  ubicacionUsuario = null,
+  centrarEnUbicacion = null,
   modoSeleccion,
   onSeleccionarUbicacion,
+  onCambiarVista,
   ruta = null,
   onSolicitarRuta,
 }: MapaServiciosProps): React.JSX.Element {
   const contenedorRef = useRef<HTMLDivElement>(null);
   const manejadorSeleccionRef = useRef(onSeleccionarUbicacion);
+  const manejadorVistaRef = useRef(onCambiarVista);
   const manejadorRutaRef = useRef(onSolicitarRuta);
+  const publicarVistaRef = useRef<(() => void) | null>(null);
   const [mapa, setMapa] = useState<LeafletMap | null>(null);
   const [errorMapa, setErrorMapa] = useState<string | null>(null);
 
   useEffect(() => {
     manejadorSeleccionRef.current = onSeleccionarUbicacion;
   }, [onSeleccionarUbicacion]);
+
+  useEffect(() => {
+    manejadorVistaRef.current = onCambiarVista;
+  }, [onCambiarVista]);
 
   useEffect(() => {
     manejadorRutaRef.current = onSolicitarRuta;
@@ -60,17 +69,33 @@ export default function MapaServicios({
           [centroRafaela.lat, centroRafaela.lng],
           13,
         );
+        const publicarVista = () => {
+          const limites = mapaCreado?.getBounds();
+          if (!limites) {
+            return;
+          }
+          manejadorVistaRef.current?.({
+            north: limites.getNorth(),
+            south: limites.getSouth(),
+            east: limites.getEast(),
+            west: limites.getWest(),
+          });
+        };
+        publicarVistaRef.current = publicarVista;
+        mapaCreado.on("dragend", publicarVista);
+        mapaCreado.on("zoomend", publicarVista);
         L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
           attribution:
             '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
           maxZoom: 19,
         }).addTo(mapaCreado);
         mapaCreado.on("click", (evento) => {
-          manejadorSeleccionRef.current({
+          manejadorSeleccionRef.current?.({
             lat: evento.latlng.lat,
             lng: evento.latlng.lng,
           });
         });
+        publicarVista();
         setMapa(mapaCreado);
       })
       .catch((error: unknown) => {
@@ -80,6 +105,7 @@ export default function MapaServicios({
 
     return () => {
       cancelado = true;
+      publicarVistaRef.current = null;
       mapaCreado?.remove();
       // Next oculta la página al navegar y vuelve a montar los efectos al
       // regresar: sin esto, los marcadores se dibujarían sobre el mapa destruido.
@@ -221,15 +247,23 @@ export default function MapaServicios({
           marcador.bindPopup(popup).addTo(capaMarcadores);
         }
 
-        let circulo: import("leaflet").Circle | undefined;
-        if (centroBusqueda) {
-          circulo = L.circle([centroBusqueda.lat, centroBusqueda.lng], {
-            radius: radioKm * 1000,
-            color: "#111111",
-            weight: 1.5,
-            fillColor: "#111111",
-            fillOpacity: 0.05,
-          }).addTo(capaMarcadores);
+        if (ubicacionUsuario) {
+          const nombrePanelUbicacion = "ubicacionUsuario";
+          const panelUbicacion =
+            mapa.getPane(nombrePanelUbicacion) ??
+            mapa.createPane(nombrePanelUbicacion);
+          panelUbicacion.style.zIndex = "625";
+
+          L.circleMarker([ubicacionUsuario.lat, ubicacionUsuario.lng], {
+            pane: nombrePanelUbicacion,
+            radius: 9,
+            color: "#ffffff",
+            weight: 3,
+            fillColor: "#059669",
+            fillOpacity: 1,
+          })
+            .bindPopup("Tu ubicación")
+            .addTo(capaMarcadores);
         }
 
         if (ubicacionFormulario) {
@@ -245,12 +279,6 @@ export default function MapaServicios({
             .addTo(capaMarcadores);
         }
 
-        if (circulo) {
-          // Encuadra el radio completo para que se vea hasta dónde busca.
-          mapa.fitBounds(circulo.getBounds(), { padding: [16, 16] });
-        } else if (ubicacionFormulario) {
-          mapa.setView([ubicacionFormulario.lat, ubicacionFormulario.lng], 13);
-        }
       })
       .catch((error: unknown) => {
         console.error("No se pudieron actualizar los marcadores:", error);
@@ -261,7 +289,23 @@ export default function MapaServicios({
       cancelado = true;
       capaMarcadores?.remove();
     };
-  }, [centroBusqueda, items, mapa, radioKm, ubicacionFormulario]);
+  }, [items, mapa, ubicacionFormulario, ubicacionUsuario]);
+
+  useEffect(() => {
+    if (!mapa) {
+      return;
+    }
+
+    if (centrarEnUbicacion) {
+      mapa.setView(
+        [centrarEnUbicacion.lat, centrarEnUbicacion.lng],
+        mapa.getZoom(),
+      );
+      publicarVistaRef.current?.();
+    } else if (ubicacionFormulario) {
+      mapa.setView([ubicacionFormulario.lat, ubicacionFormulario.lng], 13);
+    }
+  }, [centrarEnUbicacion, mapa, ubicacionFormulario]);
 
   useEffect(() => {
     if (!mapa || !ruta) {

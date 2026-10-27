@@ -140,6 +140,21 @@ acceso externo a Google Maps. El resumen flotante permite abrir Google Maps o
 cerrar la ruta; al cerrarla también se quitan de la URL los parámetros de
 destino usados para iniciar la navegación desde una publicación.
 
+El panel separa la búsqueda por nombre/tipo del control de ubicación en módulos
+visuales distintos. "Buscar servicios" aplica los filtros dentro de la zona
+visible del mapa. "Obtener ubicación" solicita permiso al navegador, muestra el
+punto verde, centra el mapa conservando el zoom y busca los servicios visibles
+que coinciden con esos filtros. Después, el mismo control cambia a "Centrar
+ubicación" y, al volver al punto guardado, actualiza los resultados con los
+mismos filtros dentro de la zona visible. Si se mueve o acerca el mapa, "Buscar
+servicios" vuelve a aplicar los filtros en la nueva zona.
+
+Los resultados priorizan locales verificados y calificaciones buenas con al
+menos tres votos; también consideran la relevancia del texto y usan la cercanía
+a la ubicación como desempate. Si no se obtuvo la ubicación, se toma el centro
+del mapa. La ubicación no se guarda en la base de datos. Estas acciones no
+calculan ni dibujan una ruta.
+
 Cada publicación de servicio permite consultar y agregar comentarios y
 calificar con una a cinco estrellas. Se necesita iniciar sesión para comentar o
 calificar; cada usuario puede modificar su calificación. Los resultados muestran

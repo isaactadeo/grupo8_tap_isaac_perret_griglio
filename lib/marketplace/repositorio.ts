@@ -717,6 +717,34 @@ export async function obtenerResumenCalificaciones(
   };
 }
 
+export async function obtenerResumenCalificacionesServicios(
+  ids: string[],
+): Promise<Map<string, { averageRating: number; ratingCount: number }>> {
+  if (ids.length === 0) {
+    return new Map();
+  }
+
+  const resumenes = await db
+    .select({
+      serviceId: serviceRatings.serviceId,
+      averageRating: avg(serviceRatings.stars),
+      ratingCount: count(),
+    })
+    .from(serviceRatings)
+    .where(inArray(serviceRatings.serviceId, ids))
+    .groupBy(serviceRatings.serviceId);
+
+  return new Map(
+    resumenes.map((resumen) => [
+      resumen.serviceId,
+      {
+        averageRating: Number(resumen.averageRating ?? 0),
+        ratingCount: resumen.ratingCount,
+      },
+    ]),
+  );
+}
+
 export async function calificarPublicacion(
   tipo: ListingType,
   id: string,

@@ -240,15 +240,48 @@ export default function InteraccionesPublicacion({
             <div>
               <p className="text-sm font-medium text-zinc-800">
                 {resumen.ratingCount > 0
-                  ? `${resumen.averageRating.toLocaleString("es-AR", { maximumFractionDigits: 1 })} de 5 · ${resumen.ratingCount} ${
+                  ? `Promedio: ${resumen.averageRating.toLocaleString("es-AR", { maximumFractionDigits: 1 })} de 5 · ${resumen.ratingCount} ${
                       resumen.ratingCount === 1 ? "calificación" : "calificaciones"
                     }`
                   : "Todavía no hay calificaciones"}
               </p>
+              {resumen.ratingCount > 0 ? (
+                <div
+                  role="img"
+                  aria-label={`Promedio de ${resumen.averageRating.toLocaleString("es-AR", { maximumFractionDigits: 1 })} de 5 estrellas`}
+                  className="mt-1 flex text-2xl leading-none"
+                >
+                  {[1, 2, 3, 4, 5].map((estrella) => {
+                    const porcentaje = Math.max(
+                      0,
+                      Math.min(1, resumen.averageRating - estrella + 1),
+                    ) * 100;
+
+                    return (
+                      <span
+                        key={estrella}
+                        className="relative inline-block text-zinc-300"
+                        aria-hidden="true"
+                      >
+                        ★
+                        <span
+                          className="absolute inset-y-0 left-0 overflow-hidden text-amber-500"
+                          style={{ width: `${porcentaje}%` }}
+                        >
+                          ★
+                        </span>
+                      </span>
+                    );
+                  })}
+                </div>
+              ) : null}
+              <p className="mt-3 text-sm font-medium text-zinc-800">
+                Tu calificación
+              </p>
               <div
                 role="radiogroup"
-                aria-label="Calificar publicación con estrellas"
-                className="mt-1 flex"
+                aria-label="Tu calificación: selecciona de 1 a 5 estrellas"
+                className="flex"
               >
                 {[1, 2, 3, 4, 5].map((stars) => (
                   <button
@@ -272,7 +305,7 @@ export default function InteraccionesPublicacion({
               </div>
               {resumen.userRating ? (
                 <p className="text-xs text-zinc-500">
-                  Tu calificación: {resumen.userRating} de 5. Selecciona otra
+                  Marcaste {resumen.userRating} de 5 estrellas. Selecciona otra
                   cantidad para actualizarla.
                 </p>
               ) : (

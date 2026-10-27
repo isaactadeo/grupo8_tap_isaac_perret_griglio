@@ -334,8 +334,6 @@ export default function FormularioServicio({
           </div>
           <MapaServicios
             items={[]}
-            centroBusqueda={null}
-            radioKm={0}
             ubicacionFormulario={ubicacion}
             modoSeleccion={marcando ? "publicacion" : null}
             onSeleccionarUbicacion={(punto) => {
