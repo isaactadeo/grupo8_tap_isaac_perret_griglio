@@ -95,7 +95,7 @@ export function obtenerUbicacionActual(): Promise<GeoCoordinates> {
         if (error.code === error.PERMISSION_DENIED) {
           reject(
             new Error(
-              "Permiso de ubicación denegado. Habilitalo en el navegador para calcular la ruta.",
+              "Permiso de ubicación denegado. Habilitalo en el navegador para usar tu ubicación.",
             ),
           );
         } else if (error.code === error.TIMEOUT) {

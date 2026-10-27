@@ -8,6 +8,13 @@ export interface GeoCoordinates {
   lng: number;
 }
 
+export interface MapViewport {
+  north: number;
+  south: number;
+  east: number;
+  west: number;
+}
+
 export interface User {
   id: string;
   clerkUserId: string | null;
@@ -100,6 +107,8 @@ export interface MarketplaceSearchDocument {
   /** Missing on documents indexed before owner verification existed. */
   ownerVerified?: boolean;
   ownerName?: string;
+  averageRating?: number;
+  ratingCount?: number;
   make?: string;
   model?: string;
   year?: number;
@@ -130,6 +139,7 @@ export interface MarketplaceSearchFilters {
   minYear?: number;
   maxYear?: number;
   location?: { lat: number; lon: number; distance: string };
+  viewport?: { north: number; south: number; east: number; west: number };
   page: number;
   pageSize: number;
 }

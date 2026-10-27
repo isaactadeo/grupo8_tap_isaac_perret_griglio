@@ -4,6 +4,7 @@ import type {
   ServiceType,
 } from "@/src/types";
 import { buscarPublicaciones } from "@/lib/search/elasticsearch";
+import { obtenerResumenCalificacionesServicios } from "@/lib/marketplace/repositorio";
 
 const serviceTypes: ReadonlySet<string> = new Set([
   "taller",
@@ -65,6 +66,42 @@ function leerNumeroOpcional(
     throw new SolicitudBusquedaInvalida(`Parámetro inválido: ${name}`);
   }
   return parsed;
+}
+
+function distanciaEntreUbicaciones(
+  primera: { lat: number; lon: number } | null,
+  segunda: { lat: number; lon: number } | null,
+): number {
+  if (!primera || !segunda) {
+    return Number.POSITIVE_INFINITY;
+  }
+
+  const radianes = Math.PI / 180;
+  const diferenciaLatitud = (segunda.lat - primera.lat) * radianes;
+  const diferenciaLongitud = (segunda.lon - primera.lon) * radianes;
+  const a =
+    Math.sin(diferenciaLatitud / 2) ** 2 +
+    Math.cos(primera.lat * radianes) *
+      Math.cos(segunda.lat * radianes) *
+      Math.sin(diferenciaLongitud / 2) ** 2;
+
+  return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function calidadCalificacion(
+  averageRating: number,
+  ratingCount: number,
+): number {
+  const votosMinimos = 3;
+  const calificacionBase = 4;
+  if (ratingCount < votosMinimos || averageRating < calificacionBase) {
+    return 0;
+  }
+
+  return (
+    (averageRating * ratingCount + calificacionBase * votosMinimos) /
+    (ratingCount + votosMinimos)
+  );
 }
 
 export async function GET(request: Request): Promise<Response> {
@@ -154,6 +191,50 @@ export async function GET(request: Request): Promise<Response> {
         "distance debe expresarse en kilómetros y no superar 100km",
       );
     }
+    const norte = leerNumeroOpcional(params, "north", {
+      minimum: -90,
+      maximum: 90,
+    });
+    const sur = leerNumeroOpcional(params, "south", {
+      minimum: -90,
+      maximum: 90,
+    });
+    const este = leerNumeroOpcional(params, "east", {
+      minimum: -180,
+      maximum: 180,
+    });
+    const oeste = leerNumeroOpcional(params, "west", {
+      minimum: -180,
+      maximum: 180,
+    });
+    const limitesMapa = [norte, sur, este, oeste];
+    if (limitesMapa.some((limite) => limite !== undefined)) {
+      if (
+        norte === undefined ||
+        sur === undefined ||
+        este === undefined ||
+        oeste === undefined ||
+        norte <= sur
+      ) {
+        throw new SolicitudBusquedaInvalida(
+          "Los límites del mapa no son válidos",
+        );
+      }
+    }
+
+    const latitudOrigen = leerNumeroOpcional(params, "originLat", {
+      minimum: -90,
+      maximum: 90,
+    });
+    const longitudOrigen = leerNumeroOpcional(params, "originLng", {
+      minimum: -180,
+      maximum: 180,
+    });
+    if ((latitudOrigen === undefined) !== (longitudOrigen === undefined)) {
+      throw new SolicitudBusquedaInvalida(
+        "originLat y originLng deben enviarse juntos",
+      );
+    }
 
     const filters: MarketplaceSearchFilters = {
       query,
@@ -168,15 +249,102 @@ export async function GET(request: Request): Promise<Response> {
       ...(lat !== undefined && lon !== undefined
         ? { location: { lat, lon, distance } }
         : {}),
+      ...(norte !== undefined &&
+      sur !== undefined &&
+      este !== undefined &&
+      oeste !== undefined
+        ? { viewport: { north: norte, south: sur, east: este, west: oeste } }
+        : {}),
     };
 
     const result = await buscarPublicaciones(filters);
-    return Response.json(result);
+    if (kind !== "service") {
+      return Response.json(result);
+    }
+
+    const resumenes = await obtenerResumenCalificacionesServicios(
+      result.items.map((item) => item.id),
+    );
+    const relevancia = new Map(
+      result.items.map((item, indice) => [item.id, indice]),
+    );
+    const origen =
+      latitudOrigen !== undefined && longitudOrigen !== undefined
+        ? { lat: latitudOrigen, lon: longitudOrigen }
+        : norte !== undefined &&
+            sur !== undefined &&
+            este !== undefined &&
+            oeste !== undefined
+          ? {
+              lat: (norte + sur) / 2,
+              lon: (este + oeste) / 2,
+            }
+          : null;
+    const items = result.items.map((item) => {
+      const resumen = resumenes.get(item.id);
+      return {
+        ...item,
+        averageRating: resumen?.averageRating ?? 0,
+        ratingCount: resumen?.ratingCount ?? 0,
+      };
+    });
+
+    items.sort((primero, segundo) => {
+      const verificado =
+        Number(segundo.ownerVerified === true) -
+        Number(primero.ownerVerified === true);
+      if (verificado !== 0) {
+        return verificado;
+      }
+
+      const calidad =
+        calidadCalificacion(
+          segundo.averageRating ?? 0,
+          segundo.ratingCount ?? 0,
+        ) -
+        calidadCalificacion(
+          primero.averageRating ?? 0,
+          primero.ratingCount ?? 0,
+        );
+      if (calidad !== 0) {
+        return calidad;
+      }
+
+      const votos =
+        (segundo.ratingCount ?? 0) -
+        (primero.ratingCount ?? 0);
+      if (votos !== 0) {
+        const votosConfiables =
+          (segundo.ratingCount ?? 0) >= 3 &&
+          (primero.ratingCount ?? 0) >= 3 &&
+          (segundo.averageRating ?? 0) >= 4 &&
+          (primero.averageRating ?? 0) >= 4;
+        if (votosConfiables) {
+          return votos;
+        }
+      }
+
+      if (query) {
+        const relevanciaTexto =
+          (relevancia.get(primero.id) ?? 0) -
+          (relevancia.get(segundo.id) ?? 0);
+        if (relevanciaTexto !== 0) {
+          return relevanciaTexto;
+        }
+      }
+
+      const distancia =
+        distanciaEntreUbicaciones(origen, primero.location) -
+        distanciaEntreUbicaciones(origen, segundo.location);
+      return Number.isNaN(distancia) ? 0 : distancia;
+    });
+
+    return Response.json({ ...result, items });
   } catch (error) {
     if (error instanceof SolicitudBusquedaInvalida) {
       return Response.json({ error: error.message }, { status: 400 });
     }
-    console.error("Elasticsearch marketplace search failed:", error);
+    console.error("Marketplace search failed:", error);
     return Response.json(
       { error: "No se pudo completar la búsqueda" },
       { status: 503 },

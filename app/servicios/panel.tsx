@@ -27,6 +27,7 @@ import {
 import { formatearPrecio } from "@/lib/marketplace/formato";
 import type {
   GeoCoordinates,
+  MapViewport,
   MarketplaceSearchDocument,
   ServiceType,
 } from "@/src/types";
@@ -61,11 +62,16 @@ function leerMensajeError(datos: unknown, mensajeAlternativo: string): string {
 export default function PanelServicios(): React.JSX.Element {
   const [termino, setTermino] = useState("");
   const [categoria, setCategoria] = useState<ServiceType | "">("");
-  const [usarRadio, setUsarRadio] = useState(false);
-  const [radioKm, setRadioKm] = useState(20);
-  const [centroBusqueda, setCentroBusqueda] =
+  const [vistaActual, setVistaActual] = useState<MapViewport | null>(null);
+  const vistaActualRef = useRef<MapViewport | null>(null);
+  const ubicacionDisponibleRef = useRef<GeoCoordinates | null>(null);
+  const buscarCercaPendienteRef = useRef(false);
+  const [ubicacionDisponible, setUbicacionDisponible] =
     useState<GeoCoordinates | null>(null);
-  const [eligiendoCentro, setEligiendoCentro] = useState(false);
+  const [solicitudCentrar, setSolicitudCentrar] =
+    useState<GeoCoordinates | null>(null);
+  const [obteniendoUbicacion, setObteniendoUbicacion] = useState(false);
+  const [errorUbicacion, setErrorUbicacion] = useState<string | null>(null);
   const [resultado, setResultado] =
     useState<ResultadoBusquedaServicios | null>(null);
   const [buscando, setBuscando] = useState(false);
@@ -168,8 +174,22 @@ export default function PanelServicios(): React.JSX.Element {
     };
   }, [solicitarRuta]);
 
-  async function buscarServicios(evento: SubmitEvent<HTMLFormElement>) {
-    evento.preventDefault();
+  function cambiarVista(vista: MapViewport) {
+    vistaActualRef.current = vista;
+    setVistaActual(vista);
+    if (buscarCercaPendienteRef.current) {
+      buscarCercaPendienteRef.current = false;
+      void ejecutarBusqueda({
+        vistaMapa: vista,
+        origen: ubicacionDisponibleRef.current,
+      });
+    }
+  }
+
+  async function ejecutarBusqueda(opciones?: {
+    vistaMapa?: MapViewport;
+    origen?: GeoCoordinates | null;
+  }) {
     setBuscando(true);
     setErrorBusqueda(null);
 
@@ -185,11 +205,27 @@ export default function PanelServicios(): React.JSX.Element {
       if (categoria) {
         parametros.set("category", categoria);
       }
-      if (usarRadio && centroBusqueda) {
-        parametros.set("lat", String(centroBusqueda.lat));
-        parametros.set("lng", String(centroBusqueda.lng));
-        parametros.set("distance", `${radioKm}km`);
+      const vista = opciones?.vistaMapa ?? vistaActualRef.current;
+      if (vista) {
+        parametros.set("north", String(vista.north));
+        parametros.set("south", String(vista.south));
+        parametros.set("east", String(vista.east));
+        parametros.set("west", String(vista.west));
       }
+      const origen =
+        opciones?.origen ??
+        ubicacionDisponibleRef.current ??
+        (vista
+          ? {
+              lat: (vista.north + vista.south) / 2,
+              lng: (vista.east + vista.west) / 2,
+            }
+          : null);
+      if (origen) {
+        parametros.set("originLat", String(origen.lat));
+        parametros.set("originLng", String(origen.lng));
+      }
+      parametros.set("pageSize", "50");
 
       const respuesta = await fetch(`/api/search?${parametros.toString()}`);
       const datos: unknown = await respuesta.json();
@@ -221,12 +257,54 @@ export default function PanelServicios(): React.JSX.Element {
     }
   }
 
-  function seleccionarUbicacion(ubicacion: GeoCoordinates) {
-    if (eligiendoCentro) {
-      setCentroBusqueda(ubicacion);
-      setUsarRadio(true);
-      setEligiendoCentro(false);
+  function buscarServicios(evento: SubmitEvent<HTMLFormElement>) {
+    evento.preventDefault();
+    const vista = vistaActualRef.current;
+    if (!vista) {
+      setErrorBusqueda("El mapa todavía se está cargando.");
+      return;
     }
+    void ejecutarBusqueda({
+      vistaMapa: vista,
+      origen: ubicacionDisponibleRef.current,
+    });
+  }
+
+  async function usarUbicacionActual() {
+    setObteniendoUbicacion(true);
+    setErrorUbicacion(null);
+
+    try {
+      const ubicacion = await obtenerUbicacionActual();
+      ubicacionDisponibleRef.current = ubicacion;
+      setUbicacionDisponible(ubicacion);
+      setSolicitudCentrar(ubicacion);
+      buscarCercaPendienteRef.current = true;
+    } catch (error) {
+      setErrorUbicacion(
+        error instanceof Error
+          ? error.message
+          : "No se pudo determinar tu ubicación actual.",
+      );
+    } finally {
+      setObteniendoUbicacion(false);
+    }
+  }
+
+  function centrarUbicacion() {
+    const ubicacion = ubicacionDisponibleRef.current;
+    if (ubicacion) {
+      buscarCercaPendienteRef.current = true;
+      setSolicitudCentrar({ ...ubicacion });
+    }
+  }
+
+  function obtenerOCentrarUbicacion() {
+    if (ubicacionDisponibleRef.current) {
+      centrarUbicacion();
+      return;
+    }
+    void usarUbicacionActual();
   }
 
   return (
@@ -237,8 +315,8 @@ export default function PanelServicios(): React.JSX.Element {
             Talleres y lavaderos
           </h1>
           <p className="mt-3 max-w-2xl text-lg text-gris">
-            Buscá por nombre o descripción, filtrá por tipo y mirá dónde quedan
-            en el mapa de Rafaela.
+            Buscá por nombre o descripción, filtrá por tipo y explorá los
+            servicios que aparecen en la zona visible del mapa.
           </p>
         </div>
         <Link href="/servicios/publicar" className="boton boton-principal">
@@ -247,110 +325,92 @@ export default function PanelServicios(): React.JSX.Element {
       </div>
 
       <div className="mt-8 grid gap-8 lg:grid-cols-[22rem_minmax(0,1fr)] lg:gap-10">
-        <form
-          onSubmit={buscarServicios}
-          role="search"
-          aria-label="Buscar servicios"
-          className="grid h-fit gap-4 rounded-xl border border-linea bg-papel p-5 sm:grid-cols-2 lg:sticky lg:top-6 lg:grid-cols-1"
-        >
-          <label className="sm:col-span-2 lg:col-span-1">
-            <span className="etiqueta">Nombre o servicio</span>
-            <input
-              type="search"
-              value={termino}
-              onChange={(evento) => setTermino(evento.target.value)}
-              maxLength={100}
-              placeholder="Ej.: cambio de aceite, lavado completo"
-              className="campo"
-            />
-          </label>
-          <label>
-            <span className="etiqueta">Tipo de servicio</span>
-            <select
-              value={categoria}
-              onChange={(evento) =>
-                setCategoria(evento.target.value as ServiceType | "")
-              }
-              className="campo"
+        <div className="flex h-fit flex-col gap-4 lg:sticky lg:top-6">
+          <form
+            onSubmit={buscarServicios}
+            role="search"
+            aria-label="Buscar servicios"
+            className="grid gap-4 rounded-xl border border-linea bg-papel p-5"
+          >
+            <label>
+              <span className="etiqueta">Nombre o servicio</span>
+              <input
+                type="search"
+                value={termino}
+                onChange={(evento) => setTermino(evento.target.value)}
+                maxLength={100}
+                placeholder="Ej.: cambio de aceite, lavado completo"
+                className="campo"
+              />
+            </label>
+            <label>
+              <span className="etiqueta">Tipo de servicio</span>
+              <select
+                value={categoria}
+                onChange={(evento) =>
+                  setCategoria(evento.target.value as ServiceType | "")
+                }
+                className="campo"
+              >
+                <option value="">Todos</option>
+                <option value="taller">Talleres</option>
+                <option value="lavadero">Lavaderos</option>
+              </select>
+            </label>
+            <button
+              type="submit"
+              disabled={buscando || obteniendoUbicacion || !vistaActual}
+              className="boton boton-principal w-full"
             >
-              <option value="">Todos</option>
-              <option value="taller">Talleres</option>
-              <option value="lavadero">Lavaderos</option>
-            </select>
-          </label>
-          <label>
-            <span className="etiqueta">Radio de búsqueda</span>
-            <select
-              value={radioKm}
-              onChange={(evento) => setRadioKm(Number(evento.target.value))}
-              disabled={!usarRadio}
-              className="campo"
-            >
-              {[5, 10, 20, 50, 100].map((distancia) => (
-                <option key={distancia} value={distancia}>
-                  {distancia} km
-                </option>
-              ))}
-            </select>
-            {!usarRadio ? (
-              <span className="ayuda">
-                Elegí un punto en el mapa para activarlo.
-              </span>
+              {buscando ? "Buscando…" : "Buscar servicios"}
+            </button>
+            {errorBusqueda ? (
+              <p role="alert" className="text-sm font-medium text-alerta">
+              {errorBusqueda}
+              </p>
             ) : null}
-          </label>
-          <div className="flex flex-wrap items-center gap-3 sm:col-span-2 lg:col-span-1">
+          </form>
+
+          <section
+            aria-label="Ubicación"
+            className="grid gap-4 rounded-xl border border-linea bg-papel p-5"
+          >
+            <h2 className="text-base font-semibold text-tinta">Ubicación</h2>
             <button
               type="button"
-              onClick={() => setEligiendoCentro(true)}
-              aria-pressed={eligiendoCentro}
-              className="boton boton-secundario"
+              onClick={obtenerOCentrarUbicacion}
+              disabled={obteniendoUbicacion || buscando}
+              className="boton boton-principal w-full"
             >
-              Elegir punto en el mapa
+              {obteniendoUbicacion
+                ? "Obteniendo ubicación…"
+                : ubicacionDisponible
+                  ? "Centrar ubicación"
+                  : "Obtener ubicación"}
             </button>
-            {centroBusqueda ? (
-              <label className="flex items-center gap-2 text-sm font-medium">
-                <input
-                  type="checkbox"
-                  checked={usarRadio}
-                  onChange={(evento) => setUsarRadio(evento.target.checked)}
-                  className="size-4 accent-tinta"
-                />
-                Filtrar por cercanía
-              </label>
+            {errorUbicacion ? (
+              <p role="alert" className="text-sm font-medium text-alerta">
+                {errorUbicacion}
+              </p>
             ) : null}
-          </div>
-          <button
-            type="submit"
-            disabled={buscando}
-            className="boton boton-principal sm:col-span-2 lg:col-span-1"
-          >
-            {buscando ? "Buscando…" : "Buscar servicios"}
-          </button>
-          {errorBusqueda ? (
-            <p
-              role="alert"
-              className="text-sm font-medium text-alerta sm:col-span-2 lg:col-span-1"
-            >
-              {errorBusqueda}
-            </p>
-          ) : null}
-        </form>
+          </section>
+        </div>
 
         <div className="min-w-0 space-y-6">
           <div className="relative">
             <MapaServicios
               items={resultado?.items ?? []}
-              centroBusqueda={usarRadio ? centroBusqueda : null}
-              radioKm={radioKm}
               ubicacionFormulario={null}
-              modoSeleccion={eligiendoCentro ? "busqueda" : null}
-              onSeleccionarUbicacion={seleccionarUbicacion}
+              ubicacionUsuario={ubicacionDisponible}
+              centrarEnUbicacion={solicitudCentrar}
+              modoSeleccion={null}
+              onCambiarVista={cambiarVista}
               ruta={ruta}
               onSolicitarRuta={solicitarRuta}
             />
             {cargandoRuta || ruta || errorRuta ? (
               <section
-                className="mt-3 rounded-2xl border border-hueso-hondo bg-papel p-4 text-sm shadow-sm"
+                className="tarjeta-ruta mt-3 p-4 text-sm"
                 aria-live="polite"
                 aria-label="Resumen de ruta"
               >
@@ -545,6 +605,23 @@ export default function PanelServicios(): React.JSX.Element {
                             {formatearPrecio(servicio.price)}
                           </span>
                         </p>
+                        {servicio.ratingCount ? (
+                          <p className="mt-1 text-sm font-medium text-tinta">
+                            <span className="text-amber-500" aria-hidden="true">
+                              ★
+                            </span>{" "}
+                            {servicio.averageRating?.toLocaleString("es-AR", {
+                              maximumFractionDigits: 1,
+                            })}{" "}
+                            <span className="font-normal text-gris">
+                              ({servicio.ratingCount}{" "}
+                              {servicio.ratingCount === 1
+                                ? "calificación"
+                                : "calificaciones"}
+                              )
+                            </span>
+                          </p>
+                        ) : null}
                         {ubicacion ? (
                           <div className="mt-3 flex flex-wrap gap-2">
                             <button
@@ -603,7 +680,7 @@ export default function PanelServicios(): React.JSX.Element {
                   No hay servicios con esos filtros.
                 </p>
                 <p className="mt-1 text-gris">
-                  Probá con otras palabras, cambiá el tipo o ampliá el radio.
+                  Probá moviendo el mapa o ajustando los filtros.
                 </p>
               </div>
             ) : null}

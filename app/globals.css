@@ -1,19 +1,22 @@
 @import "tailwindcss";
 
 /*
-  Sistema minimalista: monocromo cálido, superficies planas con bordes de 1px
-  y color solo con significado (talleres, lavaderos, avisos y errores).
-  Títulos en serif editorial (Newsreader) e interfaz y precios en Geist.
+  Sistema de concesionaria: azul marino profundo como base, rojo de
+  competición para las acciones principales y superficies gris azulado frías.
+  El resto del color tiene significado (talleres, lavaderos, avisos y errores).
+  Toda la tipografía en Geist; los títulos en negrita con tracking ajustado.
 */
 @theme {
-  --color-tinta: #111111;
-  --color-carbon: #2f3437;
-  --color-gris: #6f6e6a;
-  --color-hueso: #f7f6f3;
-  --color-hueso-hondo: #efeeea;
+  --color-tinta: #0f172a;
+  --color-carbon: #1e293b;
+  --color-gris: #64748b;
+  --color-hueso: #f4f6f9;
+  --color-hueso-hondo: #e8ecf1;
   --color-papel: #ffffff;
-  --color-linea: #eaeaea;
-  --color-linea-campo: #d9d8d4;
+  --color-linea: #e2e8f0;
+  --color-linea-campo: #cbd5e1;
+  --color-marca: #d7261e;
+  --color-marca-hondo: #b51f18;
   --color-taller: #9f2f2d;
   --color-taller-suave: #fdebec;
   --color-lavadero: #1f6c9f;
@@ -26,28 +29,26 @@
 
   --font-sans:
     var(--font-geist), "Helvetica Neue", ui-sans-serif, system-ui, sans-serif;
-  --font-serif: var(--font-newsreader), Georgia, serif;
 
-  --text-titulo: 2.75rem;
+  --text-titulo: 2.5rem;
   --text-titulo--line-height: 1.1;
-  --text-subtitulo: 1.75rem;
-  --text-subtitulo--line-height: 1.15;
+  --text-subtitulo: 1.625rem;
+  --text-subtitulo--line-height: 1.2;
 }
 
-/* Títulos editoriales: serif fina con tracking ajustado. */
+/* Títulos: sans en negrita con tracking ajustado. */
 @utility titular {
-  font-family: var(--font-serif);
-  font-weight: 400;
-  font-variation-settings: "opsz" 72;
-  letter-spacing: -0.025em;
+  font-family: var(--font-sans);
+  font-weight: 700;
+  letter-spacing: -0.03em;
   line-height: 1.1;
   color: var(--color-tinta);
 }
 
-/* Precios y años: cifras tabulares, peso normal y tracking ajustado. */
+/* Precios y años: cifras tabulares, seminegrita y tracking ajustado. */
 @utility precio {
   font-family: var(--font-sans);
-  font-weight: 400;
+  font-weight: 650;
   letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
 }
@@ -77,12 +78,12 @@ body {
     color: var(--color-gris);
   }
 
-  .tarjeta-foto {
-    transition: box-shadow 200ms ease;
+  .tarjeta-foto img {
+    transition: transform 400ms ease;
   }
 
-  .group:hover .tarjeta-foto {
-    box-shadow: 0 2px 8px rgb(0 0 0 / 0.04);
+  .group:hover .tarjeta-foto img {
+    transform: scale(1.03);
   }
 
   /* Insignias de estado: píldora pequeña sobre un pastel apagado. */
@@ -96,17 +97,6 @@ body {
     letter-spacing: 0.05em;
     line-height: 1.6;
     text-transform: uppercase;
-  }
-
-  /* Foto del inicio: desaturada, cálida y con grano sutil. */
-  .foto-calida {
-    filter: saturate(0.7) sepia(0.06);
-  }
-
-  .grano {
-    pointer-events: none;
-    opacity: 0.04;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
   }
 
   /* Campos de formulario */
@@ -129,7 +119,7 @@ body {
     width: 100%;
     min-height: 2.75rem;
     border: 1px solid var(--color-linea-campo);
-    border-radius: 6px;
+    border-radius: 8px;
     background: var(--color-papel);
     padding: 0.55rem 0.75rem;
     color: var(--color-carbon);
@@ -142,7 +132,7 @@ body {
   }
 
   .campo:focus-visible {
-    outline: 3px solid rgb(17 17 17 / 0.08);
+    outline: 3px solid rgb(15 23 42 / 0.1);
     outline-offset: 0;
     border-color: var(--color-tinta);
   }
@@ -159,9 +149,9 @@ body {
     justify-content: center;
     gap: 0.5rem;
     min-height: 2.75rem;
-    border-radius: 6px;
+    border-radius: 8px;
     padding: 0.55rem 1.1rem;
-    font-weight: 500;
+    font-weight: 600;
     font-size: 0.9375rem;
     line-height: 1.2;
     text-align: center;
@@ -181,12 +171,12 @@ body {
   }
 
   .boton-principal {
-    background: var(--color-tinta);
+    background: var(--color-marca);
     color: var(--color-papel);
   }
 
   .boton-principal:hover:not(:disabled) {
-    background: #333333;
+    background: var(--color-marca-hondo);
   }
 
   .boton-ruta {
@@ -203,6 +193,28 @@ body {
     background: #1d4ed8;
   }
 
+  .boton-mapa {
+    border: 1px solid var(--color-ruta);
+    background: var(--color-ruta);
+    color: var(--color-papel);
+  }
+
+  .boton-mapa:hover:not(:disabled) {
+    background: #1d4ed8;
+  }
+
+  .tarjeta-ruta {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgb(37 99 235 / 0.32);
+    border-radius: 1rem;
+    background: var(--color-papel);
+    box-shadow:
+      0 0 0 3px rgb(37 99 235 / 0.08),
+      0 0 22px 4px rgb(37 99 235 / 0.16),
+      0 12px 28px rgb(15 23 42 / 0.14);
+  }
+
   .boton-secundario {
     border: 1px solid var(--color-linea-campo);
     background: var(--color-papel);
@@ -217,7 +229,7 @@ body {
     color: var(--color-tinta);
     font-weight: 500;
     text-decoration: underline;
-    text-decoration-color: #b8b7b2;
+    text-decoration-color: var(--color-linea-campo);
     text-decoration-thickness: 1px;
     text-underline-offset: 0.2em;
     transition: text-decoration-color 150ms ease;
@@ -314,6 +326,11 @@ body {
       animation: aparecer 600ms cubic-bezier(0.16, 1, 0.3, 1) both;
     }
 
+    .tarjeta-ruta {
+      animation: aparecer-tarjeta-ruta 750ms cubic-bezier(0.16, 1, 0.3, 1)
+        both;
+    }
+
     @supports (animation-timeline: view()) {
       .aparecer {
         animation: aparecer linear both;
@@ -329,6 +346,24 @@ body {
       transform: translateY(12px);
     }
     to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @keyframes aparecer-tarjeta-ruta {
+    0% {
+      opacity: 0;
+      transform: translateY(10px) scale(0.98);
+    }
+    65% {
+      transform: translateY(-2px) scale(1.005);
+      box-shadow:
+        0 0 0 8px rgb(37 99 235 / 0.16),
+        0 0 30px 8px rgb(37 99 235 / 0.2),
+        0 12px 28px rgb(15 23 42 / 0.14);
+    }
+    100% {
       opacity: 1;
       transform: none;
     }

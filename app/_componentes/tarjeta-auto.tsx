@@ -57,12 +57,12 @@ export default function TarjetaAuto({
   const verificado = auto.verificado === true;
 
   return (
-    <article className="aparecer group relative flex flex-col gap-3 has-[a:focus-visible]:outline-3 has-[a:focus-visible]:outline-offset-4 has-[a:focus-visible]:outline-tinta rounded-[10px]">
-      <div
-        className={`foto-vacia tarjeta-foto relative aspect-[4/3] overflow-hidden rounded-[10px] ${
-          verificado ? "border-2 border-destacado" : "border border-linea"
-        }`}
-      >
+    <article
+      className={`aparecer group relative flex h-full flex-col overflow-hidden rounded-xl bg-papel transition-shadow duration-200 hover:shadow-[0_10px_30px_rgb(15_23_42/0.1)] has-[a:focus-visible]:outline-3 has-[a:focus-visible]:outline-offset-4 has-[a:focus-visible]:outline-tinta ${
+        verificado ? "border-2 border-destacado" : "border border-linea"
+      }`}
+    >
+      <div className="foto-vacia tarjeta-foto relative aspect-[4/3] overflow-hidden">
         {auto.foto ? (
           <Image
             src={auto.foto}
@@ -83,8 +83,8 @@ export default function TarjetaAuto({
         ) : null}
       </div>
 
-      <div className="px-0.5">
-        <Encabezado className="line-clamp-2 text-[0.9375rem] sm:min-h-[2.75em] leading-snug text-carbon">
+      <div className="px-4 pt-3 pb-4">
+        <Encabezado className="line-clamp-2 text-[0.9375rem] font-medium sm:min-h-[2.75em] leading-snug text-carbon">
           {auto.id ? (
             <Link
               href={`/autos/${auto.id}`}

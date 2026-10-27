@@ -17,7 +17,7 @@ function Logo(): React.JSX.Element {
         stroke="currentColor"
         strokeWidth="3.5"
       />
-      <path d="M17 0.5v6" stroke="#b8b7b2" strokeWidth="3" />
+      <path d="M17 0.5v6" stroke="var(--color-marca)" strokeWidth="3" />
     </svg>
   );
 }
@@ -99,8 +99,8 @@ export default function Encabezado({
           aria-label="Marketplace Rafaela, inicio"
         >
           <Logo />
-          <span className="titular text-[1.375rem] leading-none">
-            Marketplace Rafaela
+          <span className="titular text-[1.25rem] leading-none">
+            Marketplace<span className="text-marca"> Rafaela</span>
           </span>
         </Link>
 

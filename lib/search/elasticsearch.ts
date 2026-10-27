@@ -416,6 +416,22 @@ export async function buscarPublicaciones(
       },
     });
   }
+  if (filters.viewport) {
+    filter.push({
+      geo_bounding_box: {
+        location: {
+          top_left: {
+            lat: filters.viewport.north,
+            lon: filters.viewport.west,
+          },
+          bottom_right: {
+            lat: filters.viewport.south,
+            lon: filters.viewport.east,
+          },
+        },
+      },
+    });
+  }
   if (filters.location) {
     filter.push({
       geo_distance: {
