@@ -93,12 +93,12 @@ export default function FormularioBusquedaAutos({
         method="get"
         role="search"
         onSubmit={buscar}
-        className="grid gap-4 rounded-xl border border-linea bg-papel p-4 text-carbon shadow-[0_8px_30px_rgb(0_0_0/0.04)] sm:grid-cols-2 sm:p-5 lg:grid-cols-[1.6fr_1fr_1.2fr_auto] lg:items-end"
+        className="grid gap-4 rounded-2xl border border-linea bg-papel p-4 text-carbon shadow-[0_1px_2px_rgb(0_0_0/0.04)] sm:grid-cols-2 sm:p-6 lg:grid-cols-[1.6fr_1fr_1.2fr_auto] lg:items-end"
       >
         {campoTexto}
         {campoAnioDesde}
         {campoPrecioHasta}
-        <button type="submit" className="boton boton-principal sm:col-span-2 lg:col-span-1">
+        <button type="submit" className="boton boton-principal sm:col-span-2 lg:col-span-1 lg:px-6">
           Buscar autos
         </button>
       </form>

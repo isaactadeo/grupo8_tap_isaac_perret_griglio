@@ -98,7 +98,7 @@ export default function PaginaInicio(): React.JSX.Element {
       <main className="flex-1">
         <div className="mx-auto max-w-6xl px-4 pt-6 pb-20 sm:px-8 sm:pt-10 sm:pb-24">
           <section aria-labelledby="titulo-inicio">
-            <div className="relative isolate aspect-[4/5] overflow-hidden rounded-xl border border-linea bg-hueso-hondo sm:aspect-[16/9] lg:aspect-[1376/768]">
+            <div className="relative isolate aspect-[4/5] overflow-hidden rounded-2xl bg-hueso-hondo sm:aspect-[16/9] lg:aspect-[2/1]">
               <Image
                 src={fotoInicio}
                 alt=""
@@ -106,36 +106,45 @@ export default function PaginaInicio(): React.JSX.Element {
                 preload
                 placeholder="blur"
                 sizes="(min-width: 1152px) 1088px, 100vw"
-                className="foto-calida -z-10 object-cover"
+                className="foto-calida -z-10 object-cover object-[center_65%]"
               />
               <div aria-hidden="true" className="grano absolute inset-0 -z-10" />
-              <div className="px-5 pt-7 sm:px-12 sm:pt-11">
+              {/* Velo claro detrás del texto para que se lea sobre cualquier zona de la foto. */}
+              <div
+                aria-hidden="true"
+                className="absolute inset-0 -z-10 bg-gradient-to-b from-hueso/90 via-hueso/45 to-transparent sm:bg-gradient-to-r sm:from-hueso/90 sm:via-hueso/40"
+              />
+              <div className="px-6 pt-8 sm:px-12 sm:pt-14">
+                <p className="entrada text-xs font-semibold tracking-[0.14em] text-gris uppercase">
+                  Compra y venta · Rafaela, Santa Fe
+                </p>
                 <h1
                   id="titulo-inicio"
-                  className="titular entrada max-w-[14ch] text-[clamp(2.5rem,6vw,4.5rem)]"
+                  className="titular entrada mt-3 max-w-[13ch] text-[clamp(2.5rem,5.5vw,4.25rem)] leading-[1.02]"
                 >
                   Autos en venta en Rafaela
                 </h1>
-                <p className="entrada mt-4 max-w-md text-lg text-carbon">
-                  Filtrá por marca, modelo, año y presupuesto.
+                <p className="entrada mt-5 max-w-sm text-lg leading-relaxed text-carbon">
+                  Encontrá tu próximo auto filtrando por marca, modelo, año y
+                  presupuesto.
                 </p>
               </div>
             </div>
-            <div className="relative z-10 -mt-14 px-3 sm:-mt-16 sm:px-10">
+            <div className="mt-4">
               <FormularioBusquedaAutos variante="tablero" />
             </div>
           </section>
 
           <nav
             aria-label="Buscar por marca"
-            className="mt-5 flex flex-wrap items-baseline gap-x-5 gap-y-1.5 px-1"
+            className="mt-6 flex flex-wrap items-center gap-2"
           >
-            <span className="text-sm text-gris">Buscar por marca:</span>
+            <span className="mr-2 text-sm text-gris">Marcas populares</span>
             {marcasFrecuentes.map((marca) => (
               <Link
                 key={marca}
                 href={`/autos?q=${encodeURIComponent(marca)}`}
-                className="text-[0.9375rem] font-medium text-tinta hover:underline hover:underline-offset-4"
+                className="rounded-full border border-linea bg-papel px-3.5 py-1.5 text-sm font-medium text-tinta transition-colors hover:border-tinta"
               >
                 {marca}
               </Link>
@@ -169,7 +178,7 @@ export default function PaginaInicio(): React.JSX.Element {
         <div className="aparecer mx-auto grid max-w-6xl gap-5 px-4 py-20 sm:px-8 sm:py-24 md:grid-cols-[1.35fr_1fr]">
           <section
             aria-labelledby="titulo-servicios"
-            className="flex flex-col rounded-xl border border-linea bg-papel p-6 sm:p-10"
+            className="flex flex-col rounded-2xl border border-linea bg-papel p-6 sm:p-10"
           >
             <h2
               id="titulo-servicios"
@@ -201,7 +210,7 @@ export default function PaginaInicio(): React.JSX.Element {
 
           <section
             aria-labelledby="titulo-vender"
-            className="flex flex-col rounded-xl border border-linea bg-papel p-6 sm:p-10"
+            className="flex flex-col rounded-2xl border border-linea bg-papel p-6 sm:p-10"
           >
             <h2
               id="titulo-vender"
