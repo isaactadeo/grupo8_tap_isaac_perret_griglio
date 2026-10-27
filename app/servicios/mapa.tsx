@@ -6,6 +6,7 @@ import type {
   GeoCoordinates,
   MarketplaceSearchDocument,
 } from "@/src/types";
+import type { RutaVehicular } from "./rutas";
 import { crearEnlaceComoLlegar } from "./enlace-direcciones";
 
 interface MapaServiciosProps {
@@ -15,6 +16,8 @@ interface MapaServiciosProps {
   ubicacionFormulario: GeoCoordinates | null;
   modoSeleccion: "busqueda" | "publicacion" | null;
   onSeleccionarUbicacion: (ubicacion: GeoCoordinates) => void;
+  ruta?: RutaVehicular | null;
+  onSolicitarRuta?: (destino: GeoCoordinates, titulo: string) => void;
 }
 
 const centroRafaela: GeoCoordinates = { lat: -31.2503, lng: -61.4867 };
@@ -26,15 +29,22 @@ export default function MapaServicios({
   ubicacionFormulario,
   modoSeleccion,
   onSeleccionarUbicacion,
+  ruta = null,
+  onSolicitarRuta,
 }: MapaServiciosProps): React.JSX.Element {
   const contenedorRef = useRef<HTMLDivElement>(null);
   const manejadorSeleccionRef = useRef(onSeleccionarUbicacion);
+  const manejadorRutaRef = useRef(onSolicitarRuta);
   const [mapa, setMapa] = useState<LeafletMap | null>(null);
   const [errorMapa, setErrorMapa] = useState<string | null>(null);
 
   useEffect(() => {
     manejadorSeleccionRef.current = onSeleccionarUbicacion;
   }, [onSeleccionarUbicacion]);
+
+  useEffect(() => {
+    manejadorRutaRef.current = onSolicitarRuta;
+  }, [onSolicitarRuta]);
 
   useEffect(() => {
     let cancelado = false;
@@ -97,6 +107,7 @@ export default function MapaServicios({
             continue;
           }
 
+          const ubicacion = servicio.location;
           const categoria = servicio.category ?? "taller";
           // Los locales verificados van más grandes y por encima del resto.
           const verificado = servicio.ownerVerified === true;
@@ -123,6 +134,61 @@ export default function MapaServicios({
           const tipo = document.createElement("div");
           tipo.textContent = categoria === "taller" ? "Taller" : "Lavadero";
           popup.append(nombre, tipo);
+          if (manejadorRutaRef.current) {
+            const botonRuta = document.createElement("button");
+            botonRuta.type = "button";
+            botonRuta.className = "boton boton-ruta";
+            botonRuta.style.width = "100%";
+            botonRuta.setAttribute(
+              "aria-label",
+              `Cómo llegar a ${servicio.title}`,
+            );
+            const iconoRuta = document.createElementNS(
+              "http://www.w3.org/2000/svg",
+              "svg",
+            );
+            iconoRuta.setAttribute("viewBox", "0 0 24 24");
+            iconoRuta.setAttribute("width", "20");
+            iconoRuta.setAttribute("height", "20");
+            iconoRuta.setAttribute("fill", "none");
+            iconoRuta.setAttribute("stroke", "currentColor");
+            iconoRuta.setAttribute("stroke-width", "1.8");
+            iconoRuta.setAttribute("stroke-linecap", "round");
+            iconoRuta.setAttribute("stroke-linejoin", "round");
+            iconoRuta.setAttribute("aria-hidden", "true");
+            const trazoRuta = document.createElementNS(
+              "http://www.w3.org/2000/svg",
+              "path",
+            );
+            trazoRuta.setAttribute("d", "M6 4v5a3 3 0 0 0 3 3h6a3 3 0 0 1 3 3v5");
+            const inicioRuta = document.createElementNS(
+              "http://www.w3.org/2000/svg",
+              "circle",
+            );
+            inicioRuta.setAttribute("cx", "6");
+            inicioRuta.setAttribute("cy", "4");
+            inicioRuta.setAttribute("r", "2");
+            const finRuta = document.createElementNS(
+              "http://www.w3.org/2000/svg",
+              "circle",
+            );
+            finRuta.setAttribute("cx", "18");
+            finRuta.setAttribute("cy", "20");
+            finRuta.setAttribute("r", "2");
+            iconoRuta.append(trazoRuta, inicioRuta, finRuta);
+            botonRuta.append(iconoRuta, document.createTextNode("Cómo llegar"));
+            botonRuta.addEventListener("click", (evento) => {
+              L.DomEvent.stopPropagation(evento);
+              manejadorRutaRef.current?.(
+                {
+                  lat: ubicacion.lat,
+                  lng: ubicacion.lon,
+                },
+                servicio.title,
+              );
+            });
+            popup.append(botonRuta);
+          }
           const enlaceComoLlegar = document.createElement("a");
           enlaceComoLlegar.href = crearEnlaceComoLlegar(
             servicio.location.lat,
@@ -130,7 +196,8 @@ export default function MapaServicios({
           );
           enlaceComoLlegar.target = "_blank";
           enlaceComoLlegar.rel = "noopener noreferrer";
-          enlaceComoLlegar.textContent = "Cómo llegar";
+          enlaceComoLlegar.className = "enlace mt-2 inline-flex text-sm";
+          enlaceComoLlegar.textContent = "Abrir en Google Maps";
           popup.append(enlaceComoLlegar);
           const vendedor =
             servicio.ownerName ?? (verificado ? "Local verificado" : null);
@@ -195,6 +262,56 @@ export default function MapaServicios({
       capaMarcadores?.remove();
     };
   }, [centroBusqueda, items, mapa, radioKm, ubicacionFormulario]);
+
+  useEffect(() => {
+    if (!mapa || !ruta) {
+      return;
+    }
+
+    let cancelado = false;
+    let capaRuta: import("leaflet").LayerGroup | undefined;
+
+    void import("leaflet")
+      .then((L) => {
+        if (cancelado) {
+          return;
+        }
+
+        capaRuta = L.layerGroup().addTo(mapa);
+        const linea = L.polyline(
+          ruta.geometria.coordinates.map(([lng, lat]) => [lat, lng]),
+          { color: "#2563eb", weight: 5, opacity: 0.9 },
+        ).addTo(capaRuta);
+        L.circleMarker([ruta.geometria.coordinates[0][1], ruta.geometria.coordinates[0][0]], {
+          radius: 6,
+          color: "#ffffff",
+          weight: 2,
+          fillColor: "#2563eb",
+          fillOpacity: 1,
+        }).addTo(capaRuta);
+        const ultimaCoordenada =
+          ruta.geometria.coordinates[ruta.geometria.coordinates.length - 1];
+        L.circleMarker([ultimaCoordenada[1], ultimaCoordenada[0]], {
+          radius: 6,
+          color: "#2563eb",
+          weight: 2,
+          fillColor: "#ffffff",
+          fillOpacity: 1,
+        })
+          .bindTooltip(ruta.titulo, { direction: "top" })
+          .addTo(capaRuta);
+        mapa.fitBounds(linea.getBounds(), { padding: [24, 24] });
+      })
+      .catch((error: unknown) => {
+        console.error("No se pudo dibujar la ruta en el mapa:", error);
+        setErrorMapa("No se pudo mostrar la ruta en el mapa.");
+      });
+
+    return () => {
+      cancelado = true;
+      capaRuta?.remove();
+    };
+  }, [mapa, ruta]);
 
   return (
     <div

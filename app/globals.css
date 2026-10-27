@@ -21,6 +21,8 @@
   --color-destacado: #956400;
   --color-destacado-suave: #fbf3db;
   --color-alerta: #9f2f2d;
+  --color-ruta: #2563eb;
+  --color-ruta-suave: #eff6ff;
 
   --font-sans:
     var(--font-geist), "Helvetica Neue", ui-sans-serif, system-ui, sans-serif;
@@ -185,6 +187,20 @@ body {
 
   .boton-principal:hover:not(:disabled) {
     background: #333333;
+  }
+
+  .boton-ruta {
+    border: 1px solid var(--color-ruta);
+    border-radius: 9999px;
+    background: var(--color-ruta);
+    color: var(--color-papel);
+    font-weight: 600;
+    box-shadow: 0 5px 16px rgb(37 99 235 / 0.18);
+  }
+
+  .boton-ruta:hover:not(:disabled) {
+    transform: translateY(-1px);
+    background: #1d4ed8;
   }
 
   .boton-secundario {

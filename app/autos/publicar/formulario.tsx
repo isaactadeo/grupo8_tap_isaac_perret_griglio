@@ -40,6 +40,42 @@ function esProvincia(valor: string | null): valor is Provincia {
 
 const provinciaInicial: Provincia = "Santa Fe";
 
+const ejemplosAuto = [
+  {
+    title: "DEMO - Toyota Corolla XEi 2020 en Rafaela",
+    make: "Toyota",
+    model: "Corolla XEi",
+    year: 2020,
+    description:
+      "Ejemplo de prueba. 72.000 km, buen estado general, mantenimiento al dia y documentacion lista para transferir.",
+    price: "18900000",
+    city: "Rafaela",
+    province: "Santa Fe",
+  },
+  {
+    title: "DEMO - Volkswagen Gol Trend 2018 en Rafaela",
+    make: "Volkswagen",
+    model: "Gol Trend",
+    year: 2018,
+    description:
+      "Ejemplo de prueba. 86.000 km, motor 1.6, interior cuidado y services al dia. Consultar por visita.",
+    price: "12800000",
+    city: "Rafaela",
+    province: "Santa Fe",
+  },
+  {
+    title: "DEMO - Ford Ranger XLT 2022 en Rafaela",
+    make: "Ford",
+    model: "Ranger XLT",
+    year: 2022,
+    description:
+      "Ejemplo de prueba. 48.000 km, doble cabina, equipada y lista para trabajar o viajar.",
+    price: "35900000",
+    city: "Rafaela",
+    province: "Santa Fe",
+  },
+] as const;
+
 interface RespuestaPublicacion {
   error?: string;
   guardado?: boolean;
@@ -96,9 +132,11 @@ function leerRespuesta(datos: unknown): RespuestaPublicacion {
 /** Publica un auto nuevo o, con `autoExistente`, edita uno propio. */
 export default function FormularioPublicarAuto({
   subidaFotosHabilitada,
+  ejemplosHabilitados = false,
   autoExistente,
 }: {
   subidaFotosHabilitada: boolean;
+  ejemplosHabilitados?: boolean;
   autoExistente?: AutoEditable;
 }): React.JSX.Element {
   const router = useRouter();
@@ -140,6 +178,20 @@ export default function FormularioPublicarAuto({
     setFotos([]);
     setCiudad("");
     setProvincia(provinciaInicial);
+  }
+
+  function cargarEjemplo(ejemplo: (typeof ejemplosAuto)[number]) {
+    setTitulo(ejemplo.title);
+    setMarca(ejemplo.make);
+    setModelo(ejemplo.model);
+    setAnio(String(ejemplo.year));
+    setDescripcion(ejemplo.description);
+    setPrecio(ejemplo.price);
+    setCiudad(ejemplo.city);
+    setProvincia(ejemplo.province);
+    setError(null);
+    setMensaje(null);
+    setUrlPublicacion(null);
   }
 
   async function publicarAuto(evento: SubmitEvent<HTMLFormElement>) {
@@ -269,6 +321,34 @@ export default function FormularioPublicarAuto({
           onSubmit={publicarAuto}
           className="space-y-6 rounded-xl border border-linea bg-papel p-5 sm:p-7"
         >
+          {!editando && ejemplosHabilitados ? (
+            <section className="rounded-lg border border-linea bg-fondo p-4">
+              <h2 className="text-sm font-semibold">Datos de prueba</h2>
+              <p className="mt-1 text-sm text-gris">
+                Elegí un ejemplo para completar el formulario. Se publicará
+                realmente a tu nombre sólo cuando pulses “Publicar auto”; luego
+                podrás editarlo o eliminarlo desde Mis publicaciones. No incluye
+                fotos.
+              </p>
+              <div
+                role="group"
+                aria-label="Ejemplos de autos"
+                className="mt-3 flex flex-wrap gap-2"
+              >
+                {ejemplosAuto.map((ejemplo) => (
+                  <button
+                    key={ejemplo.title}
+                    type="button"
+                    onClick={() => cargarEjemplo(ejemplo)}
+                    className="boton boton-secundario min-h-9 px-3 py-1.5 text-sm"
+                  >
+                    {ejemplo.make} {ejemplo.model}
+                  </button>
+                ))}
+              </div>
+            </section>
+          ) : null}
+
           <div className="grid gap-5 sm:grid-cols-2">
             <label className="sm:col-span-2">
               <span className="etiqueta">Título</span>

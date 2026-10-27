@@ -23,6 +23,10 @@ export default function PaginaPublicarServicio(): React.JSX.Element {
       {clerkConfigurado ? (
         <FormularioServicio
           subidaFotosHabilitada={Boolean(process.env.BLOB_READ_WRITE_TOKEN)}
+          ejemplosHabilitados={
+            process.env.NODE_ENV === "development" ||
+            process.env.HABILITAR_EJEMPLOS_DEMO === "true"
+          }
         />
       ) : (
         <div

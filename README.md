@@ -132,8 +132,13 @@ destacados y con un tilde junto al nombre del vendedor. En el mapa su marcador
 es más grande, tiene borde dorado y queda por encima de los demás, y el popup
 muestra el nombre con el tilde.
 
-Los servicios con ubicación tienen un botón "Cómo llegar" que abre una ruta en
-Google Maps desde la ubicación actual del usuario.
+Los servicios con ubicación tienen la opción "Cómo llegar" para trazar una ruta
+en el mapa mediante la API pública de OSRM. Se solicita la ubicación actual en
+el navegador y se muestra distancia y duración estimadas. OSRM no requiere API
+Key y necesita el permiso de ubicación del navegador. También se conserva el
+acceso externo a Google Maps. El resumen flotante permite abrir Google Maps o
+cerrar la ruta; al cerrarla también se quitan de la URL los parámetros de
+destino usados para iniciar la navegación desde una publicación.
 
 Cada publicación de servicio permite consultar y agregar comentarios y
 calificar con una a cinco estrellas. Se necesita iniciar sesión para comentar o
@@ -153,6 +158,14 @@ La API valida los datos, obtiene el propietario de la sesión de Clerk, guarda
 el auto en PostgreSQL y después lo indexa en Elasticsearch. Si la indexación
 falla, el formulario informa que el auto quedó guardado pero la búsqueda no se
 sincronizó.
+
+En desarrollo local, los formularios de autos y servicios ofrecen ejemplos
+marcados como `DEMO` para probar publicaciones en Rafaela. Elegir un ejemplo
+sólo completa el formulario; el registro se crea al enviarlo por el flujo normal
+y queda asociado a la cuenta autenticada. Después se puede editar o eliminar
+desde `/mis-publicaciones`. Los ejemplos no incluyen fotos. En un deployment
+Preview se pueden habilitar con `HABILITAR_EJEMPLOS_DEMO=true` en la
+configuración de entorno de Preview; no habilitar esta opción en Production.
 
 ## Interfaz
 

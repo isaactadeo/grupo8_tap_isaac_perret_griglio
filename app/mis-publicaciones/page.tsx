@@ -10,6 +10,7 @@ import {
   formatearPrecio,
   formatearUbicacion,
 } from "@/lib/marketplace/formato";
+import { crearEnlaceRuta } from "@/app/servicios/rutas";
 import {
   listarAutosDeUsuario,
   listarServiciosDeUsuario,
@@ -26,6 +27,7 @@ function FilaPublicacion({
   precio,
   fecha,
   enlace,
+  comoLlegar,
   editar,
   eliminar,
 }: {
@@ -35,6 +37,7 @@ function FilaPublicacion({
   precio: string;
   fecha: Date;
   enlace?: string;
+  comoLlegar?: string;
   editar: string;
   eliminar: React.ReactNode;
 }): React.JSX.Element {
@@ -66,6 +69,11 @@ function FilaPublicacion({
         </p>
       </div>
       <div className="flex flex-wrap items-start gap-2 sm:justify-end">
+        {comoLlegar ? (
+          <Link href={comoLlegar} className="boton boton-secundario min-h-9 px-3 py-1.5 text-sm">
+            Cómo llegar
+          </Link>
+        ) : null}
         <Link href={editar} className="boton boton-secundario min-h-9 px-3 py-1.5 text-sm">
           Editar
         </Link>
@@ -169,6 +177,11 @@ async function ListadoPublicaciones(): Promise<React.JSX.Element> {
                 detalle={servicio.category === "taller" ? "Taller" : "Lavadero"}
                 precio={formatearPrecio(servicio.price)}
                 fecha={servicio.createdAt}
+                comoLlegar={
+                  servicio.location
+                    ? crearEnlaceRuta(servicio.location, servicio.title)
+                    : undefined
+                }
                 editar={`/servicios/${servicio.id}/editar`}
                 eliminar={
                   <BotonEliminar

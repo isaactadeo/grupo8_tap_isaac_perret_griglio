@@ -12,6 +12,41 @@ import SelectorFotos, {
 import MapaServicios from "@/app/servicios/mapa";
 import type { GeoCoordinates, Service, ServiceType } from "@/src/types";
 
+const ejemplosServicio = [
+  {
+    title: "DEMO - Taller mecanico Norte",
+    category: "taller",
+    description:
+      "Ejemplo de prueba en Rafaela. Diagnostico general, mecanica ligera y turnos coordinados por mensaje.",
+    price: "25000",
+    location: { lat: -31.2418, lng: -61.4933 },
+  },
+  {
+    title: "DEMO - Taller mecanico Centro",
+    category: "taller",
+    description:
+      "Ejemplo de prueba en Rafaela. Service preventivo, cambio de aceite y revision antes de viajar.",
+    price: "32000",
+    location: { lat: -31.2512, lng: -61.4815 },
+  },
+  {
+    title: "DEMO - Lavadero Brillo",
+    category: "lavadero",
+    description:
+      "Ejemplo de prueba en Rafaela. Lavado exterior e interior con turnos y atencion para autos y camionetas.",
+    price: "12000",
+    location: { lat: -31.2455, lng: -61.4734 },
+  },
+  {
+    title: "DEMO - Lavadero Express",
+    category: "lavadero",
+    description:
+      "Ejemplo de prueba en Rafaela. Lavado rapido, aspirado y limpieza de tapizados con reserva previa.",
+    price: "16000",
+    location: { lat: -31.2538, lng: -61.5032 },
+  },
+] as const;
+
 export type ServicioEditable = Pick<
   Service,
   "id" | "title" | "category" | "description" | "price" | "photos" | "location"
@@ -33,9 +68,11 @@ function leerMensajeError(datos: unknown): string {
 export default function FormularioServicio({
   servicioExistente,
   subidaFotosHabilitada,
+  ejemplosHabilitados = false,
 }: {
   servicioExistente?: ServicioEditable;
   subidaFotosHabilitada: boolean;
+  ejemplosHabilitados?: boolean;
 }): React.JSX.Element {
   const router = useRouter();
   const editando = Boolean(servicioExistente);
@@ -71,6 +108,17 @@ export default function FormularioServicio({
     fotos.forEach(liberarVistaPrevia);
     setFotos([]);
     setUbicacion(null);
+  }
+
+  function cargarEjemplo(ejemplo: (typeof ejemplosServicio)[number]) {
+    setTitulo(ejemplo.title);
+    setCategoria(ejemplo.category);
+    setDescripcion(ejemplo.description);
+    setPrecio(ejemplo.price);
+    setUbicacion(ejemplo.location);
+    setMarcando(false);
+    setError(null);
+    setMensaje(null);
   }
 
   async function guardar(evento: SubmitEvent<HTMLFormElement>) {
@@ -172,6 +220,34 @@ export default function FormularioServicio({
         onSubmit={guardar}
         className="mt-8 max-w-3xl space-y-6 rounded-xl border border-linea bg-papel p-5 sm:p-7"
       >
+        {!editando && ejemplosHabilitados ? (
+          <section className="rounded-lg border border-linea bg-fondo p-4">
+            <h2 className="text-sm font-semibold">Datos de prueba</h2>
+            <p className="mt-1 text-sm text-gris">
+              Elegí un ejemplo para completar el formulario y ubicarlo en el
+              mapa. Se publicará realmente a tu nombre sólo cuando pulses
+              “Publicar servicio”; luego podrás editarlo o eliminarlo desde Mis
+              publicaciones. No incluye fotos.
+            </p>
+            <div
+              role="group"
+              aria-label="Ejemplos de servicios"
+              className="mt-3 flex flex-wrap gap-2"
+            >
+              {ejemplosServicio.map((ejemplo) => (
+                <button
+                  key={ejemplo.title}
+                  type="button"
+                  onClick={() => cargarEjemplo(ejemplo)}
+                  className="boton boton-secundario min-h-9 px-3 py-1.5 text-sm"
+                >
+                  {ejemplo.title.replace("DEMO - ", "")}
+                </button>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
         <div className="grid gap-5 sm:grid-cols-2">
           <label className="sm:col-span-2">
             <span className="etiqueta">Nombre</span>
