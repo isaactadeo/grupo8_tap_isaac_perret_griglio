@@ -2,7 +2,13 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState, type SubmitEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type SubmitEvent,
+} from "react";
 import InteraccionesPublicacion from "@/app/componentes/interacciones-publicacion";
 import MapaServicios from "./mapa";
 import { crearEnlaceComoLlegar } from "./enlace-direcciones";
@@ -11,6 +17,13 @@ import {
   MarcaVerificado,
   NombreVendedor,
 } from "@/app/_componentes/vendedor";
+import {
+  formatearDistanciaRuta,
+  formatearDuracionRuta,
+  obtenerRutaOSRM,
+  obtenerUbicacionActual,
+  type RutaVehicular,
+} from "./rutas";
 import { formatearPrecio } from "@/lib/marketplace/formato";
 import type {
   GeoCoordinates,
@@ -57,6 +70,103 @@ export default function PanelServicios(): React.JSX.Element {
     useState<ResultadoBusquedaServicios | null>(null);
   const [buscando, setBuscando] = useState(false);
   const [errorBusqueda, setErrorBusqueda] = useState<string | null>(null);
+  const [ruta, setRuta] = useState<RutaVehicular | null>(null);
+  const [cargandoRuta, setCargandoRuta] = useState(false);
+  const [errorRuta, setErrorRuta] = useState<string | null>(null);
+  const solicitudRutaRef = useRef(0);
+  const controladorRutaRef = useRef<AbortController | null>(null);
+
+  const solicitarRuta = useCallback(
+    async (destino: GeoCoordinates, titulo: string) => {
+      controladorRutaRef.current?.abort();
+      const controlador = new AbortController();
+      controladorRutaRef.current = controlador;
+      const solicitud = ++solicitudRutaRef.current;
+      setCargandoRuta(true);
+      setErrorRuta(null);
+      setRuta(null);
+
+      try {
+        const origen = await obtenerUbicacionActual();
+        if (controlador.signal.aborted) {
+          return;
+        }
+        const nuevaRuta = await obtenerRutaOSRM(
+          origen,
+          destino,
+          titulo,
+          controlador.signal,
+        );
+        if (solicitudRutaRef.current === solicitud) {
+          setRuta(nuevaRuta);
+        }
+      } catch (error) {
+        if (!controlador.signal.aborted && solicitudRutaRef.current === solicitud) {
+          setErrorRuta(
+            error instanceof Error
+              ? error.message
+              : "No se pudo calcular la ruta.",
+          );
+        }
+      } finally {
+        if (solicitudRutaRef.current === solicitud) {
+          setCargandoRuta(false);
+        }
+      }
+    },
+    [],
+  );
+
+  function limpiarRuta() {
+    solicitudRutaRef.current += 1;
+    controladorRutaRef.current?.abort();
+    controladorRutaRef.current = null;
+    setCargandoRuta(false);
+    setRuta(null);
+    setErrorRuta(null);
+
+    const parametros = new URLSearchParams(window.location.search);
+    parametros.delete("destinoLat");
+    parametros.delete("destinoLng");
+    parametros.delete("destinoNombre");
+    const consulta = parametros.toString();
+    const url = `${window.location.pathname}${
+      consulta ? `?${consulta}` : ""
+    }${window.location.hash}`;
+    window.history.replaceState(null, "", url);
+  }
+
+  useEffect(() => {
+    const parametros = new URLSearchParams(window.location.search);
+    const lat = Number(parametros.get("destinoLat"));
+    const lng = Number(parametros.get("destinoLng"));
+    let temporizador: number | undefined;
+    if (
+      parametros.has("destinoLat") &&
+      parametros.has("destinoLng") &&
+      Number.isFinite(lat) &&
+      lat >= -90 &&
+      lat <= 90 &&
+      Number.isFinite(lng) &&
+      lng >= -180 &&
+      lng <= 180
+    ) {
+      temporizador = window.setTimeout(() => {
+        void solicitarRuta(
+          { lat, lng },
+          parametros.get("destinoNombre") || "el servicio seleccionado",
+        );
+      }, 0);
+    }
+
+    return () => {
+      if (temporizador !== undefined) {
+        window.clearTimeout(temporizador);
+      }
+      solicitudRutaRef.current += 1;
+      controladorRutaRef.current?.abort();
+    };
+  }, [solicitarRuta]);
 
   async function buscarServicios(evento: SubmitEvent<HTMLFormElement>) {
     evento.preventDefault();
@@ -227,7 +337,7 @@ export default function PanelServicios(): React.JSX.Element {
         </form>
 
         <div className="min-w-0 space-y-6">
-          <div>
+          <div className="relative">
             <MapaServicios
               items={resultado?.items ?? []}
               centroBusqueda={usarRadio ? centroBusqueda : null}
@@ -235,7 +345,111 @@ export default function PanelServicios(): React.JSX.Element {
               ubicacionFormulario={null}
               modoSeleccion={eligiendoCentro ? "busqueda" : null}
               onSeleccionarUbicacion={seleccionarUbicacion}
+              ruta={ruta}
+              onSolicitarRuta={solicitarRuta}
             />
+            {cargandoRuta || ruta || errorRuta ? (
+              <section
+                className="absolute inset-x-3 bottom-3 z-[1000] rounded-2xl border border-white/80 bg-papel/95 p-4 text-sm shadow-xl backdrop-blur sm:inset-x-auto sm:bottom-4 sm:left-4 sm:w-80"
+                aria-live="polite"
+                aria-label="Resumen de ruta"
+              >
+                <div className="flex items-start gap-3">
+                  <span className="grid size-10 shrink-0 place-items-center rounded-full bg-ruta-suave text-ruta">
+                    <svg
+                      aria-hidden="true"
+                      viewBox="0 0 24 24"
+                      className="size-5"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M6 4v5a3 3 0 0 0 3 3h6a3 3 0 0 1 3 3v5" />
+                      <circle cx="6" cy="4" r="2" />
+                      <circle cx="18" cy="20" r="2" />
+                    </svg>
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-gris">
+                      {cargandoRuta
+                        ? "Preparando recorrido"
+                        : errorRuta
+                          ? "No se pudo calcular"
+                          : "Ruta estimada"}
+                    </p>
+                    <p className="mt-0.5 font-semibold leading-snug text-tinta">
+                      {cargandoRuta
+                        ? "Buscando tu ubicación…"
+                        : ruta?.titulo ?? "Intentá de nuevo en un momento."}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={limpiarRuta}
+                    aria-label="Quitar ruta"
+                    title="Quitar ruta"
+                    className="grid size-9 shrink-0 place-items-center rounded-full text-gris transition hover:bg-hueso-hondo hover:text-tinta focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ruta"
+                  >
+                    <svg
+                      aria-hidden="true"
+                      viewBox="0 0 24 24"
+                      className="size-5"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                    >
+                      <path d="m6 6 12 12M18 6 6 18" />
+                    </svg>
+                  </button>
+                </div>
+                {ruta ? (
+                  <>
+                    <div className="mt-4 grid grid-cols-2 gap-2">
+                      <div className="rounded-xl bg-hueso p-3">
+                        <p className="text-xs font-medium text-gris">
+                          Distancia
+                        </p>
+                        <p className="mt-0.5 text-lg font-semibold text-tinta">
+                          {formatearDistanciaRuta(ruta.distanciaMetros)}
+                        </p>
+                      </div>
+                      <div className="rounded-xl bg-hueso p-3">
+                        <p className="text-xs font-medium text-gris">
+                          Tiempo estimado
+                        </p>
+                        <p className="mt-0.5 text-lg font-semibold text-tinta">
+                          {formatearDuracionRuta(ruta.duracionSegundos)}
+                        </p>
+                      </div>
+                    </div>
+                    <a
+                      href={crearEnlaceComoLlegar(
+                        ruta.destino.lat,
+                        ruta.destino.lng,
+                      )}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="boton boton-secundario mt-3 w-full rounded-xl"
+                    >
+                      Abrir en Google Maps
+                    </a>
+                  </>
+                ) : null}
+                {cargandoRuta ? (
+                  <p role="status" className="mt-3 text-gris">
+                    Obteniendo tu ubicación y calculando el trayecto.
+                  </p>
+                ) : null}
+                {errorRuta ? (
+                  <p role="alert" className="mt-3 font-medium text-alerta">
+                    {errorRuta}
+                  </p>
+                ) : null}
+              </section>
+            ) : null}
             <ul
               aria-label="Referencias del mapa"
               className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-sm text-gris"
@@ -277,80 +491,109 @@ export default function PanelServicios(): React.JSX.Element {
 
             {resultado && resultado.items.length > 0 ? (
               <ul className="mt-4 divide-y divide-linea border-y border-linea">
-                {resultado.items.map((servicio) => (
-                  <li
-                    key={`${servicio.kind}:${servicio.id}`}
-                    className={`flex gap-4 py-5 ${
-                      // Los documentos indexados antes no traen el campo.
-                      servicio.ownerVerified === true
-                        ? "my-2 rounded-xl border-2 border-destacado bg-destacado-suave px-4"
-                        : ""
-                    }`}
-                  >
-                    {servicio.photos[0] ? (
-                      <Image
-                        src={servicio.photos[0]}
-                        alt={`Foto de ${servicio.title}`}
-                        width={112}
-                        height={96}
-                        unoptimized
-                        className="h-24 w-28 shrink-0 rounded-xl object-cover"
-                      />
-                    ) : null}
-                    <div className="min-w-0">
-                      <p className="flex flex-wrap gap-1.5">
-                        <span
-                          className={`insignia ${
-                            servicio.category
-                              ? insigniasCategoria[servicio.category]
-                              : "bg-hueso-hondo text-gris"
-                          }`}
-                        >
-                          {servicio.category
-                            ? etiquetasCategoria[servicio.category]
-                            : "Servicio"}
-                        </span>
-                        {servicio.ownerVerified === true ? (
-                          <InsigniaVerificado />
-                        ) : null}
-                      </p>
-                      <h2 className="mt-1 text-lg leading-snug font-semibold">
-                        {servicio.title}
-                      </h2>
-                      <NombreVendedor
-                        nombre={servicio.ownerName}
-                        verificado={servicio.ownerVerified === true}
-                        className="max-w-full text-sm text-gris"
-                      />
-                      <p className="mt-1 line-clamp-3 max-w-prose text-gris">
-                        {servicio.description}
-                      </p>
-                      <p className="mt-2 text-sm">
-                        <span className="text-gris">Precio de referencia </span>
-                        <span className="font-bold">
-                          {formatearPrecio(servicio.price)}
-                        </span>
-                      </p>
-                      {servicio.location ? (
-                        <a
-                          href={crearEnlaceComoLlegar(
-                            servicio.location.lat,
-                            servicio.location.lon,
-                          )}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="boton boton-secundario mt-3 min-h-9 px-3 py-1.5 text-sm"
-                        >
-                          Cómo llegar
-                        </a>
+                {resultado.items.map((servicio) => {
+                  const ubicacion = servicio.location;
+                  const verificado = servicio.ownerVerified === true;
+                  return (
+                    <li
+                      key={`${servicio.kind}:${servicio.id}`}
+                      className={`flex gap-4 py-5 ${
+                        verificado
+                          ? "my-2 rounded-xl border-2 border-destacado bg-destacado-suave px-4"
+                          : ""
+                      }`}
+                    >
+                      {servicio.photos[0] ? (
+                        <Image
+                          src={servicio.photos[0]}
+                          alt={`Foto de ${servicio.title}`}
+                          width={112}
+                          height={96}
+                          unoptimized
+                          className="h-24 w-28 shrink-0 rounded-xl object-cover"
+                        />
                       ) : null}
-                      <InteraccionesPublicacion
-                        tipo="servicios"
-                        id={servicio.id}
-                      />
-                    </div>
-                  </li>
-                ))}
+                      <div className="min-w-0">
+                        <p className="flex flex-wrap gap-1.5">
+                          <span
+                            className={`insignia ${
+                              servicio.category
+                                ? insigniasCategoria[servicio.category]
+                                : "bg-hueso-hondo text-gris"
+                            }`}
+                          >
+                            {servicio.category
+                              ? etiquetasCategoria[servicio.category]
+                              : "Servicio"}
+                          </span>
+                          {verificado ? <InsigniaVerificado /> : null}
+                        </p>
+                        <h2 className="mt-1 text-lg leading-snug font-semibold">
+                          {servicio.title}
+                        </h2>
+                        <NombreVendedor
+                          nombre={servicio.ownerName}
+                          verificado={servicio.ownerVerified === true}
+                          className="max-w-full text-sm text-gris"
+                        />
+                        <p className="mt-1 line-clamp-3 max-w-prose text-gris">
+                          {servicio.description}
+                        </p>
+                        <p className="mt-2 text-sm">
+                          <span className="text-gris">Precio de referencia </span>
+                          <span className="font-bold">
+                            {formatearPrecio(servicio.price)}
+                          </span>
+                        </p>
+                        {ubicacion ? (
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                void solicitarRuta(
+                                  { lat: ubicacion.lat, lng: ubicacion.lon },
+                                  servicio.title,
+                                )
+                              }
+                              className="boton boton-ruta"
+                            >
+                              <svg
+                                aria-hidden="true"
+                                viewBox="0 0 24 24"
+                                className="size-4"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="1.8"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              >
+                                <path d="M6 4v5a3 3 0 0 0 3 3h6a3 3 0 0 1 3 3v5" />
+                                <circle cx="6" cy="4" r="2" />
+                                <circle cx="18" cy="20" r="2" />
+                              </svg>
+                              Cómo llegar
+                            </button>
+                            <a
+                              href={crearEnlaceComoLlegar(
+                                ubicacion.lat,
+                                ubicacion.lon,
+                              )}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="boton boton-secundario min-h-9 px-3 py-1.5 text-sm"
+                            >
+                              Abrir en Google Maps
+                            </a>
+                          </div>
+                        ) : null}
+                        <InteraccionesPublicacion
+                          tipo="servicios"
+                          id={servicio.id}
+                        />
+                      </div>
+                    </li>
+                  );
+                })}
               </ul>
             ) : null}
 

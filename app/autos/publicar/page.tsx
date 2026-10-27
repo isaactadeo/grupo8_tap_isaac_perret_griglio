@@ -26,6 +26,10 @@ export default function PaginaPublicarAuto(): React.JSX.Element {
         {clerkConfigurado ? (
           <FormularioPublicarAuto
             subidaFotosHabilitada={Boolean(process.env.BLOB_READ_WRITE_TOKEN)}
+            ejemplosHabilitados={
+              process.env.NODE_ENV === "development" ||
+              process.env.HABILITAR_EJEMPLOS_DEMO === "true"
+            }
           />
         ) : (
           <div

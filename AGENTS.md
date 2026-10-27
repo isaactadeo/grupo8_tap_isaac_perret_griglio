@@ -88,6 +88,22 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - Photo fields currently accept HTTPS URLs only. Do not claim uploads work
   until Vercel Blob integration is implemented.
 
+## Rutas y Navegación OSRM
+
+- El mapa de servicios usa Leaflet directamente (no React-Leaflet). Mantener
+  esa implementación y dibujar la geometría GeoJSON de OSRM como una
+  polilínea Leaflet.
+- `app/servicios/rutas.ts` obtiene la ubicación del navegador y consulta la API
+  pública `https://router.project-osrm.org/route/v1/driving/`. OSRM no requiere
+  API Key; el navegador debe conceder el permiso de ubicación.
+- `app/servicios/mapa.tsx` muestra la acción "Cómo llegar" en los marcadores y
+  dibuja la ruta. `app/servicios/panel.tsx` coordina ubicación, solicitud,
+  estados de carga/error y distancia/duración; también abre rutas iniciadas
+  desde enlaces de publicaciones.
+- `app/mis-publicaciones/page.tsx` ofrece el enlace para servicios con
+  coordenadas guardadas. Los parámetros de destino solo viajan en la URL; no
+  se guardan datos de ubicación del visitante.
+
 <!-- BEGIN:nextjs-agent-feedback -->
 
 ## Report Next.js feedback
