@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import type { PublicationComment, RatingSummary } from "@/src/types";
 
 interface InteraccionesPublicacionProps {
@@ -53,9 +53,7 @@ export default function InteraccionesPublicacion({
   tipo,
   id,
 }: InteraccionesPublicacionProps): React.JSX.Element {
-  const [abierto, setAbierto] = useState(false);
-  const [cargando, setCargando] = useState(false);
-  const [cargado, setCargado] = useState(false);
+  const [cargando, setCargando] = useState(true);
   const [comentarios, setComentarios] = useState<PublicationComment[]>([]);
   const [resumen, setResumen] = useState<RatingSummary | null>(null);
   const [comentario, setComentario] = useState("");
@@ -65,67 +63,66 @@ export default function InteraccionesPublicacion({
   const [mensaje, setMensaje] = useState<string | null>(null);
   const [requiereSesion, setRequiereSesion] = useState(false);
 
-  async function cargarInteracciones() {
-    setCargando(true);
-    setError(null);
-    const ruta = `/api/publicaciones/${tipo}/${id}`;
+  useEffect(() => {
+    let cancelado = false;
+    async function cargarInteracciones() {
+      const ruta = `/api/publicaciones/${tipo}/${id}`;
 
-    try {
-      const [respuestaComentarios, respuestaCalificacion] = await Promise.all([
-        fetch(`${ruta}/comentarios`),
-        fetch(`${ruta}/calificacion`),
-      ]);
-      const [datosComentarios, datosCalificacion]: [unknown, unknown] =
-        await Promise.all([
-          respuestaComentarios.json(),
-          respuestaCalificacion.json(),
+      try {
+        const [respuestaComentarios, respuestaCalificacion] = await Promise.all([
+          fetch(`${ruta}/comentarios`),
+          fetch(`${ruta}/calificacion`),
         ]);
+        const [datosComentarios, datosCalificacion]: [unknown, unknown] =
+          await Promise.all([
+            respuestaComentarios.json(),
+            respuestaCalificacion.json(),
+          ]);
 
-      if (!respuestaComentarios.ok) {
-        throw new Error(
-          leerMensajeError(datosComentarios, "No se pudieron cargar los comentarios."),
+        if (!respuestaComentarios.ok) {
+          throw new Error(
+            leerMensajeError(datosComentarios, "No se pudieron cargar los comentarios."),
+          );
+        }
+        if (!respuestaCalificacion.ok) {
+          throw new Error(
+            leerMensajeError(datosCalificacion, "No se pudo cargar la calificación."),
+          );
+        }
+        if (
+          typeof datosComentarios !== "object" ||
+          datosComentarios === null ||
+          !("items" in datosComentarios) ||
+          !Array.isArray(datosComentarios.items) ||
+          !datosComentarios.items.every(esComentario) ||
+          typeof datosCalificacion !== "object" ||
+          datosCalificacion === null ||
+          !("resumen" in datosCalificacion) ||
+          !esResumenCalificaciones(datosCalificacion.resumen)
+        ) {
+          throw new Error("La respuesta de comentarios o calificaciones no es válida.");
+        }
+
+        if (cancelado) return;
+        setComentarios(datosComentarios.items);
+        setResumen(datosCalificacion.resumen);
+      } catch (fallo) {
+        if (cancelado) return;
+        setError(
+          fallo instanceof Error
+            ? fallo.message
+            : "No se pudieron cargar los comentarios y calificaciones.",
         );
+      } finally {
+        if (!cancelado) setCargando(false);
       }
-      if (!respuestaCalificacion.ok) {
-        throw new Error(
-          leerMensajeError(datosCalificacion, "No se pudo cargar la calificación."),
-        );
-      }
-      if (
-        typeof datosComentarios !== "object" ||
-        datosComentarios === null ||
-        !("items" in datosComentarios) ||
-        !Array.isArray(datosComentarios.items) ||
-        !datosComentarios.items.every(esComentario) ||
-        typeof datosCalificacion !== "object" ||
-        datosCalificacion === null ||
-        !("resumen" in datosCalificacion) ||
-        !esResumenCalificaciones(datosCalificacion.resumen)
-      ) {
-        throw new Error("La respuesta de comentarios o calificaciones no es válida.");
-      }
-
-      setComentarios(datosComentarios.items);
-      setResumen(datosCalificacion.resumen);
-      setCargado(true);
-    } catch (fallo) {
-      setError(
-        fallo instanceof Error
-          ? fallo.message
-          : "No se pudieron cargar los comentarios y calificaciones.",
-      );
-    } finally {
-      setCargando(false);
     }
-  }
 
-  function alternarPanel() {
-    const nuevoEstado = !abierto;
-    setAbierto(nuevoEstado);
-    if (nuevoEstado && !cargado && !cargando) {
-      void cargarInteracciones();
-    }
-  }
+    void cargarInteracciones();
+    return () => {
+      cancelado = true;
+    };
+  }, [tipo, id]);
 
   async function enviarComentario(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault();
@@ -220,22 +217,14 @@ export default function InteraccionesPublicacion({
 
   return (
     <section className="mt-4 border-t border-zinc-200 pt-3">
-      <button
-        type="button"
-        aria-expanded={abierto}
-        onClick={alternarPanel}
-        disabled={cargando}
-        className="text-sm font-semibold text-teal-800 hover:text-teal-700 disabled:opacity-60"
-      >
-        {cargando
-          ? "Cargando comentarios…"
-          : abierto
-            ? "Ocultar comentarios y calificación"
-            : "Ver comentarios y calificar"}
-      </button>
+      <h3 className="text-sm font-semibold text-teal-800">
+        Comentarios y calificación
+      </h3>
+      {cargando ? (
+        <p className="mt-2 text-sm text-zinc-500">Cargando comentarios…</p>
+      ) : null}
 
-      {abierto ? (
-        <div className="mt-4 space-y-4">
+      <div className="mt-4 space-y-4">
           {resumen ? (
             <div>
               <p className="text-sm font-medium text-zinc-800">
@@ -364,8 +353,7 @@ export default function InteraccionesPublicacion({
               </p>
             ) : null}
           </div>
-        </div>
-      ) : null}
+      </div>
     </section>
   );
 }
