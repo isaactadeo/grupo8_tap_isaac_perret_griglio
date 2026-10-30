@@ -85,6 +85,8 @@ export interface PublicationComment {
   id: string;
   content: string;
   authorName: string;
+  /** Estrellas que el autor le dio a la publicación, si la calificó. */
+  authorRating: number | null;
   createdAt: string;
 }
 

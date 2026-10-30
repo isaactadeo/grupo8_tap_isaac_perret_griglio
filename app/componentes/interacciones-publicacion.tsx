@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import type { PublicationComment, RatingSummary } from "@/src/types";
 
 interface InteraccionesPublicacionProps {
   tipo: "autos" | "servicios";
   id: string;
+  /** Oculta los comentarios detrás de un botón; se cargan al abrirlos. */
+  plegable?: boolean;
 }
 
 function leerMensajeError(datos: unknown, alternativo: string): string {
@@ -31,6 +33,8 @@ function esComentario(valor: unknown): valor is PublicationComment {
     typeof valor.content === "string" &&
     "authorName" in valor &&
     typeof valor.authorName === "string" &&
+    "authorRating" in valor &&
+    (typeof valor.authorRating === "number" || valor.authorRating === null) &&
     "createdAt" in valor &&
     typeof valor.createdAt === "string"
   );
@@ -52,10 +56,39 @@ function esResumenCalificaciones(valor: unknown): valor is RatingSummary {
 export default function InteraccionesPublicacion({
   tipo,
   id,
+  plegable = false,
 }: InteraccionesPublicacionProps): React.JSX.Element {
   const [abierto, setAbierto] = useState(false);
-  const [cargando, setCargando] = useState(false);
-  const [cargado, setCargado] = useState(false);
+
+  if (!plegable) {
+    return <PanelInteracciones tipo={tipo} id={id} />;
+  }
+
+  return (
+    <section className="mt-4 border-t border-zinc-200 pt-3">
+      <button
+        type="button"
+        aria-expanded={abierto}
+        onClick={() => setAbierto((actual) => !actual)}
+        className="text-sm font-semibold text-teal-800 hover:text-teal-700"
+      >
+        {abierto ? "Ocultar comentarios" : "Mostrar comentarios"}
+      </button>
+      {abierto ? <PanelInteracciones tipo={tipo} id={id} sinTitulo /> : null}
+    </section>
+  );
+}
+
+function PanelInteracciones({
+  tipo,
+  id,
+  sinTitulo = false,
+}: {
+  tipo: "autos" | "servicios";
+  id: string;
+  sinTitulo?: boolean;
+}): React.JSX.Element {
+  const [cargando, setCargando] = useState(true);
   const [comentarios, setComentarios] = useState<PublicationComment[]>([]);
   const [resumen, setResumen] = useState<RatingSummary | null>(null);
   const [comentario, setComentario] = useState("");
@@ -64,68 +97,76 @@ export default function InteraccionesPublicacion({
   const [error, setError] = useState<string | null>(null);
   const [mensaje, setMensaje] = useState<string | null>(null);
   const [requiereSesion, setRequiereSesion] = useState(false);
+  const [puedeModerar, setPuedeModerar] = useState(false);
+  const [confirmandoEliminar, setConfirmandoEliminar] = useState<
+    string | null
+  >(null);
+  const [eliminando, setEliminando] = useState(false);
 
-  async function cargarInteracciones() {
-    setCargando(true);
-    setError(null);
-    const ruta = `/api/publicaciones/${tipo}/${id}`;
+  useEffect(() => {
+    let cancelado = false;
+    async function cargarInteracciones() {
+      const ruta = `/api/publicaciones/${tipo}/${id}`;
 
-    try {
-      const [respuestaComentarios, respuestaCalificacion] = await Promise.all([
-        fetch(`${ruta}/comentarios`),
-        fetch(`${ruta}/calificacion`),
-      ]);
-      const [datosComentarios, datosCalificacion]: [unknown, unknown] =
-        await Promise.all([
-          respuestaComentarios.json(),
-          respuestaCalificacion.json(),
+      try {
+        const [respuestaComentarios, respuestaCalificacion] = await Promise.all([
+          fetch(`${ruta}/comentarios`),
+          fetch(`${ruta}/calificacion`),
         ]);
+        const [datosComentarios, datosCalificacion]: [unknown, unknown] =
+          await Promise.all([
+            respuestaComentarios.json(),
+            respuestaCalificacion.json(),
+          ]);
 
-      if (!respuestaComentarios.ok) {
-        throw new Error(
-          leerMensajeError(datosComentarios, "No se pudieron cargar los comentarios."),
+        if (!respuestaComentarios.ok) {
+          throw new Error(
+            leerMensajeError(datosComentarios, "No se pudieron cargar los comentarios."),
+          );
+        }
+        if (!respuestaCalificacion.ok) {
+          throw new Error(
+            leerMensajeError(datosCalificacion, "No se pudo cargar la calificación."),
+          );
+        }
+        if (
+          typeof datosComentarios !== "object" ||
+          datosComentarios === null ||
+          !("items" in datosComentarios) ||
+          !Array.isArray(datosComentarios.items) ||
+          !datosComentarios.items.every(esComentario) ||
+          typeof datosCalificacion !== "object" ||
+          datosCalificacion === null ||
+          !("resumen" in datosCalificacion) ||
+          !esResumenCalificaciones(datosCalificacion.resumen)
+        ) {
+          throw new Error("La respuesta de comentarios o calificaciones no es válida.");
+        }
+
+        if (cancelado) return;
+        setComentarios(datosComentarios.items);
+        setPuedeModerar(
+          "puedeModerar" in datosComentarios &&
+            datosComentarios.puedeModerar === true,
         );
-      }
-      if (!respuestaCalificacion.ok) {
-        throw new Error(
-          leerMensajeError(datosCalificacion, "No se pudo cargar la calificación."),
+        setResumen(datosCalificacion.resumen);
+      } catch (fallo) {
+        if (cancelado) return;
+        setError(
+          fallo instanceof Error
+            ? fallo.message
+            : "No se pudieron cargar los comentarios y calificaciones.",
         );
+      } finally {
+        if (!cancelado) setCargando(false);
       }
-      if (
-        typeof datosComentarios !== "object" ||
-        datosComentarios === null ||
-        !("items" in datosComentarios) ||
-        !Array.isArray(datosComentarios.items) ||
-        !datosComentarios.items.every(esComentario) ||
-        typeof datosCalificacion !== "object" ||
-        datosCalificacion === null ||
-        !("resumen" in datosCalificacion) ||
-        !esResumenCalificaciones(datosCalificacion.resumen)
-      ) {
-        throw new Error("La respuesta de comentarios o calificaciones no es válida.");
-      }
-
-      setComentarios(datosComentarios.items);
-      setResumen(datosCalificacion.resumen);
-      setCargado(true);
-    } catch (fallo) {
-      setError(
-        fallo instanceof Error
-          ? fallo.message
-          : "No se pudieron cargar los comentarios y calificaciones.",
-      );
-    } finally {
-      setCargando(false);
     }
-  }
 
-  function alternarPanel() {
-    const nuevoEstado = !abierto;
-    setAbierto(nuevoEstado);
-    if (nuevoEstado && !cargado && !cargando) {
-      void cargarInteracciones();
-    }
-  }
+    void cargarInteracciones();
+    return () => {
+      cancelado = true;
+    };
+  }, [tipo, id]);
 
   async function enviarComentario(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault();
@@ -174,6 +215,38 @@ export default function InteraccionesPublicacion({
     }
   }
 
+  async function eliminarComentario(comentarioId: string) {
+    setEliminando(true);
+    setError(null);
+    setMensaje(null);
+
+    try {
+      const respuesta = await fetch(
+        `/api/publicaciones/${tipo}/${id}/comentarios/${comentarioId}`,
+        { method: "DELETE" },
+      );
+      if (!respuesta.ok) {
+        const datos: unknown = await respuesta.json().catch(() => null);
+        throw new Error(
+          leerMensajeError(datos, "No se pudo eliminar el comentario."),
+        );
+      }
+      setComentarios((actuales) =>
+        actuales.filter((item) => item.id !== comentarioId),
+      );
+      setMensaje("Comentario eliminado.");
+    } catch (fallo) {
+      setError(
+        fallo instanceof Error
+          ? fallo.message
+          : "No se pudo eliminar el comentario.",
+      );
+    } finally {
+      setEliminando(false);
+      setConfirmandoEliminar(null);
+    }
+  }
+
   async function guardarCalificacion(stars: number) {
     setEnviandoCalificacion(true);
     setError(null);
@@ -207,6 +280,22 @@ export default function InteraccionesPublicacion({
 
       setResumen(datos.resumen);
       setMensaje("Calificación guardada. Puedes cambiarla cuando quieras.");
+
+      // Las estrellas se muestran también en los comentarios del autor.
+      const respuestaComentarios = await fetch(
+        `/api/publicaciones/${tipo}/${id}/comentarios`,
+      );
+      const datosComentarios: unknown = await respuestaComentarios.json();
+      if (
+        respuestaComentarios.ok &&
+        typeof datosComentarios === "object" &&
+        datosComentarios !== null &&
+        "items" in datosComentarios &&
+        Array.isArray(datosComentarios.items) &&
+        datosComentarios.items.every(esComentario)
+      ) {
+        setComentarios(datosComentarios.items);
+      }
     } catch (fallo) {
       setError(
         fallo instanceof Error
@@ -219,23 +308,19 @@ export default function InteraccionesPublicacion({
   }
 
   return (
-    <section className="mt-4 border-t border-zinc-200 pt-3">
-      <button
-        type="button"
-        aria-expanded={abierto}
-        onClick={alternarPanel}
-        disabled={cargando}
-        className="text-sm font-semibold text-teal-800 hover:text-teal-700 disabled:opacity-60"
-      >
-        {cargando
-          ? "Cargando comentarios…"
-          : abierto
-            ? "Ocultar comentarios y calificación"
-            : "Ver comentarios y calificar"}
-      </button>
+    <section
+      className={sinTitulo ? "mt-3" : "mt-4 border-t border-zinc-200 pt-3"}
+    >
+      {sinTitulo ? null : (
+        <h3 className="text-sm font-semibold text-teal-800">
+          Comentarios y calificación
+        </h3>
+      )}
+      {cargando ? (
+        <p className="mt-2 text-sm text-zinc-500">Cargando comentarios…</p>
+      ) : null}
 
-      {abierto ? (
-        <div className="mt-4 space-y-4">
+      <div className="mt-4 space-y-4">
           {resumen ? (
             <div>
               <p className="text-sm font-medium text-zinc-800">
@@ -370,12 +455,64 @@ export default function InteraccionesPublicacion({
               comentarios.map((item) => (
                 <article
                   key={item.id}
-                  className="rounded-lg bg-zinc-50 p-3 text-sm"
+                  className="border-b border-zinc-200 pb-3 text-sm last:border-b-0"
                 >
-                  <div className="flex flex-wrap items-baseline justify-between gap-x-3">
+                  <div className="flex items-center gap-3">
+                    <span
+                      aria-hidden="true"
+                      className="flex size-9 shrink-0 items-center justify-center rounded-full bg-teal-800 font-semibold text-white"
+                    >
+                      {item.authorName.trim().charAt(0).toUpperCase() || "?"}
+                    </span>
                     <p className="font-semibold text-zinc-800">
                       {item.authorName}
                     </p>
+                    {puedeModerar ? (
+                      <div className="ml-auto flex gap-2 text-xs">
+                        {confirmandoEliminar === item.id ? (
+                          <>
+                            <button
+                              type="button"
+                              disabled={eliminando}
+                              onClick={() => void eliminarComentario(item.id)}
+                              className="font-semibold text-red-700 hover:underline disabled:opacity-60"
+                            >
+                              {eliminando ? "Eliminando…" : "Confirmar"}
+                            </button>
+                            <button
+                              type="button"
+                              disabled={eliminando}
+                              onClick={() => setConfirmandoEliminar(null)}
+                              className="text-zinc-600 hover:underline disabled:opacity-60"
+                            >
+                              Cancelar
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setConfirmandoEliminar(item.id)}
+                            className="text-zinc-500 hover:text-red-700 hover:underline"
+                          >
+                            Eliminar
+                          </button>
+                        )}
+                      </div>
+                    ) : null}
+                  </div>
+                  <div className="mt-2 flex items-center gap-2">
+                    {item.authorRating ? (
+                      <span
+                        role="img"
+                        aria-label={`${item.authorRating} de 5 estrellas`}
+                        className="tracking-tight text-amber-500"
+                      >
+                        {"★".repeat(item.authorRating)}
+                        <span className="text-zinc-300">
+                          {"★".repeat(5 - item.authorRating)}
+                        </span>
+                      </span>
+                    ) : null}
                     <time
                       dateTime={item.createdAt}
                       className="text-xs text-zinc-500"
@@ -397,8 +534,7 @@ export default function InteraccionesPublicacion({
               </p>
             ) : null}
           </div>
-        </div>
-      ) : null}
+      </div>
     </section>
   );
 }

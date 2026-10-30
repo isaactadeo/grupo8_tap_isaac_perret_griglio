@@ -7,18 +7,21 @@ const rutasApi = { auto: "/api/autos", servicio: "/api/servicios" } as const;
 
 /**
  * Elimina una publicación propia después de una confirmación en el lugar.
- * Sin `redirigirA`, refresca la página actual para quitarla del listado.
+ * Sin `redirigirA`, refresca la página actual para quitarla del listado;
+ * `alEliminar` sirve para listados que viven en el estado del cliente.
  */
 export default function BotonEliminar({
   tipo,
   id,
   titulo,
   redirigirA,
+  alEliminar,
 }: {
   tipo: keyof typeof rutasApi;
   id: string;
   titulo: string;
   redirigirA?: string;
+  alEliminar?: () => void;
 }): React.JSX.Element {
   const router = useRouter();
   const [confirmando, setConfirmando] = useState(false);
@@ -28,6 +31,7 @@ export default function BotonEliminar({
   );
 
   function terminar() {
+    alEliminar?.();
     if (redirigirA) {
       router.push(redirigirA);
     }

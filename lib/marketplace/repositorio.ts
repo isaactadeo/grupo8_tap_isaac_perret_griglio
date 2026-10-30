@@ -213,7 +213,8 @@ export async function listarAutos(
     db
       .select(columnasAuto)
       .from(cars)
-      .orderBy(desc(cars.createdAt))
+      // Igual que en la búsqueda: los locales verificados van primero.
+      .orderBy(desc(columnasAuto.ownerVerified), desc(cars.createdAt))
       .limit(tamanoPagina)
       .offset(desplazamiento),
     db.select({ total: count() }).from(cars),
@@ -283,6 +284,7 @@ export async function actualizarAuto(
   id: string,
   userId: string,
   datos: DatosActualizarAuto,
+  esAdmin = false,
 ): Promise<Car | null> {
   return db.transaction(async (transaccion) => {
     const [fila] = await transaccion
@@ -303,7 +305,7 @@ export async function actualizarAuto(
           : {}),
         updatedAt: new Date(),
       })
-      .where(and(eq(cars.id, id), eq(cars.userId, userId)))
+      .where(esAdmin ? eq(cars.id, id) : and(eq(cars.id, id), eq(cars.userId, userId)))
       .returning(columnasAuto);
 
     if (!fila) {
@@ -336,12 +338,16 @@ export async function actualizarAuto(
 }
 
 /**
+ * Los admins (`esAdmin`) pueden editar y eliminar publicaciones ajenas; el
+ * resto solo las propias.
+ *
  * Elimina un auto propio y devuelve las URLs de sus fotos para limpiarlas del
  * almacenamiento, o null si no existe o pertenece a otro usuario.
  */
 export async function eliminarAuto(
   id: string,
   userId: string,
+  esAdmin = false,
 ): Promise<string[] | null> {
   return db.transaction(async (transaccion) => {
     // Las imágenes se borran en cascada: se leen antes, en la misma transacción.
@@ -351,7 +357,7 @@ export async function eliminarAuto(
       .where(eq(carImages.carId, id));
     const eliminados = await transaccion
       .delete(cars)
-      .where(and(eq(cars.id, id), eq(cars.userId, userId)))
+      .where(esAdmin ? eq(cars.id, id) : and(eq(cars.id, id), eq(cars.userId, userId)))
       .returning({ id: cars.id });
     return eliminados.length > 0 ? fotos.map((foto) => foto.url) : null;
   });
@@ -366,7 +372,8 @@ export async function listarServicios(
     db
       .select(columnasServicio)
       .from(services)
-      .orderBy(desc(services.createdAt))
+      // Igual que en la búsqueda: los locales verificados van primero.
+      .orderBy(desc(columnasServicio.ownerVerified), desc(services.createdAt))
       .limit(tamanoPagina)
       .offset(desplazamiento),
     db.select({ total: count() }).from(services),
@@ -433,7 +440,7 @@ export async function crearServicio(
 export async function actualizarServicio(
   id: string,
   userId: string,
-  datos: DatosActualizarServicio,
+  datos: DatosActualizarServicio,  esAdmin = false,
 ): Promise<Service | null> {
   return db.transaction(async (transaccion) => {
     const [fila] = await transaccion
@@ -452,7 +459,7 @@ export async function actualizarServicio(
           : {}),
         updatedAt: new Date(),
       })
-      .where(and(eq(services.id, id), eq(services.userId, userId)))
+      .where(esAdmin ? eq(services.id, id) : and(eq(services.id, id), eq(services.userId, userId)))
       .returning(columnasServicio);
 
     if (!fila) {
@@ -493,6 +500,7 @@ export async function actualizarServicio(
 export async function eliminarServicio(
   id: string,
   userId: string,
+  esAdmin = false,
 ): Promise<string[] | null> {
   return db.transaction(async (transaccion) => {
     // Las imágenes se borran en cascada: se leen antes, en la misma transacción.
@@ -502,7 +510,7 @@ export async function eliminarServicio(
       .where(eq(serviceImages.serviceId, id));
     const eliminados = await transaccion
       .delete(services)
-      .where(and(eq(services.id, id), eq(services.userId, userId)))
+      .where(esAdmin ? eq(services.id, id) : and(eq(services.id, id), eq(services.userId, userId)))
       .returning({ id: services.id });
     return eliminados.length > 0 ? fotos.map((foto) => foto.url) : null;
   });
@@ -580,10 +588,18 @@ export async function obtenerComentariosPublicacion(
         id: carComments.id,
         content: carComments.content,
         authorName: users.name,
+        authorRating: carRatings.stars,
         createdAt: carComments.createdAt,
       })
       .from(carComments)
       .innerJoin(users, eq(carComments.userId, users.id))
+      .leftJoin(
+        carRatings,
+        and(
+          eq(carRatings.carId, carComments.carId),
+          eq(carRatings.userId, carComments.userId),
+        ),
+      )
       .where(eq(carComments.carId, id))
       .orderBy(desc(carComments.createdAt))
       .limit(50);
@@ -598,10 +614,18 @@ export async function obtenerComentariosPublicacion(
       id: serviceComments.id,
       content: serviceComments.content,
       authorName: users.name,
+      authorRating: serviceRatings.stars,
       createdAt: serviceComments.createdAt,
     })
     .from(serviceComments)
     .innerJoin(users, eq(serviceComments.userId, users.id))
+    .leftJoin(
+      serviceRatings,
+      and(
+        eq(serviceRatings.serviceId, serviceComments.serviceId),
+        eq(serviceRatings.userId, serviceComments.userId),
+      ),
+    )
     .where(eq(serviceComments.serviceId, id))
     .orderBy(desc(serviceComments.createdAt))
     .limit(50);
@@ -621,11 +645,14 @@ export async function crearComentarioPublicacion(
     return null;
   }
 
-  const [usuario] = await db
-    .select({ name: users.name })
-    .from(users)
-    .where(eq(users.id, userId))
-    .limit(1);
+  const [[usuario], resumen] = await Promise.all([
+    db
+      .select({ name: users.name })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1),
+    obtenerResumenCalificaciones(tipo, id, userId),
+  ]);
   if (!usuario) {
     throw new Error("No se encontro el usuario del comentario");
   }
@@ -655,8 +682,35 @@ export async function crearComentarioPublicacion(
   return {
     ...comentario,
     authorName: usuario.name,
+    authorRating: resumen.userRating,
     createdAt: comentario.createdAt.toISOString(),
   };
+}
+
+/** Devuelve false si el comentario no existe o es de otra publicación. */
+export async function eliminarComentarioPublicacion(
+  tipo: ListingType,
+  id: string,
+  comentarioId: string,
+): Promise<boolean> {
+  const eliminados =
+    tipo === "car"
+      ? await db
+          .delete(carComments)
+          .where(
+            and(eq(carComments.id, comentarioId), eq(carComments.carId, id)),
+          )
+          .returning({ id: carComments.id })
+      : await db
+          .delete(serviceComments)
+          .where(
+            and(
+              eq(serviceComments.id, comentarioId),
+              eq(serviceComments.serviceId, id),
+            ),
+          )
+          .returning({ id: serviceComments.id });
+  return eliminados.length > 0;
 }
 
 export async function obtenerResumenCalificaciones(

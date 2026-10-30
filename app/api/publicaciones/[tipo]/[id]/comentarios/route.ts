@@ -1,4 +1,8 @@
-import { obtenerUsuarioAutenticado } from "@/lib/auth/usuario";
+import {
+  esPersonal,
+  obtenerUsuarioActual,
+  obtenerUsuarioAutenticado,
+} from "@/lib/auth/usuario";
 import {
   esRespuesta,
   leerJson,
@@ -28,11 +32,14 @@ export async function GET(
       );
     }
 
-    const items = await obtenerComentariosPublicacion(
-      publicacion.tipo,
-      publicacion.id,
-    );
-    return Response.json({ items });
+    const [items, usuario] = await Promise.all([
+      obtenerComentariosPublicacion(publicacion.tipo, publicacion.id),
+      obtenerUsuarioActual(),
+    ]);
+    return Response.json({
+      items,
+      puedeModerar: usuario !== null && esPersonal(usuario.role),
+    });
   } catch (error) {
     return responderErrorServidor(error, "Error al listar comentarios:");
   }
