@@ -3,9 +3,35 @@
 Marketplace web para comprar y vender autos y encontrar servicios vehiculares
 en Rafaela. La aplicacion usa Next.js, PostgreSQL/PostGIS y Elasticsearch.
 
-## Desarrollo local
+## Desarrollo local con Docker
 
-Requisitos: Node.js, npm y Docker Desktop con Docker Compose.
+Requisitos: Docker Desktop con Docker Compose.
+
+1. Crear el archivo de entorno local a partir del ejemplo:
+
+```bash
+cp .env.example .env.local
+```
+
+2. Completar en `.env.local` las claves de Clerk y, opcionalmente,
+   `BLOB_READ_WRITE_TOKEN`. Clerk es necesario para iniciar sesión y publicar.
+
+3. `Docker Compose` necesita las variables públicas de Clerk también durante la
+   compilación. Puede cargar `.env.local` automáticamente copiándolo como `.env`:
+
+```bash
+cp .env.local .env
+docker compose up -d --build
+```
+
+La aplicación queda disponible en `http://localhost:3000`. Compose levanta
+PostgreSQL/PostGIS, Elasticsearch y Next.js en contenedores separados.
+Docker reemplaza dentro de `app` las URLs de base y búsqueda por los nombres de
+servicio de la red interna (`db` y `elasticsearch`), mientras el navegador usa
+`http://localhost:3000` normalmente.
+
+Para desarrollar Next.js en la máquina anfitriona y mantener solo los servicios
+de datos en Docker:
 
 ```bash
 npm ci
@@ -13,9 +39,8 @@ docker compose up -d db elasticsearch
 npm run dev
 ```
 
-La aplicacion queda disponible en `http://localhost:3000`. Docker Compose
-levanta PostgreSQL/PostGIS y Elasticsearch; Next.js corre localmente fuera de
-Docker.
+En ese modo PostgreSQL y Elasticsearch quedan accesibles desde
+`http://localhost` y Next.js debe usar las URLs locales de `.env.local`.
 
 En un volumen PostgreSQL nuevo se ejecuta `database/init.sql` para crear las
 tablas y habilitar PostGIS. El script no se vuelve a ejecutar sobre un volumen
@@ -27,7 +52,7 @@ las tablas de comentarios y calificaciones. No es necesario recrear el volumen.
 
 ## Configuracion local
 
-Crear `.env.local` en la raiz con las variables necesarias:
+Crear `.env.local` en la raiz con las variables necesarias (puede partir de `.env.example`):
 
 ```env
 DATABASE_URL=postgres://USUARIO:CONTRASENA@localhost:5432/rafaela
@@ -251,4 +276,4 @@ interacciones también están disponibles para las publicaciones de servicios.
 - La subida de fotos a Vercel Blob está implementada para autos y servicios. Las fotos subidas que no llegan a
   publicarse tampoco se limpian automáticamente.
 - El despliegue en la nube (Vercel + Supabase) está en preparación. La
-  aplicación web dentro de Docker sigue pendiente.
+  aplicación web dentro de Docker ya está disponible mediante el servicio `app`.

@@ -35,6 +35,39 @@
       timeout: 5s
       retries: 12
 
+  app:
+    build:
+      context: .
+      args:
+        DATABASE_URL: ${DATABASE_URL:-postgresql://rafaela:rafaela@db:5432/rafaela}
+        ELASTICSEARCH_URL: ${ELASTICSEARCH_URL:-http://elasticsearch:9200}
+        NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:-}
+        NEXT_PUBLIC_CLERK_SIGN_IN_URL: ${NEXT_PUBLIC_CLERK_SIGN_IN_URL:-/sign-in}
+        NEXT_PUBLIC_CLERK_SIGN_UP_URL: ${NEXT_PUBLIC_CLERK_SIGN_UP_URL:-/sign-up}
+        NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL: ${NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL:-/}
+        NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL: ${NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL:-/}
+    container_name: rafaela_app
+    restart: unless-stopped
+    env_file:
+      - path: .env.local
+        required: false
+    environment:
+      DATABASE_URL: postgresql://rafaela:rafaela@db:5432/rafaela
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://localhost:3000/api/health').then(r => { if (!r.ok) process.exit(1) }).catch(() => process.exit(1))\""]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
 volumes:
   pgdata:
   elasticsearch_data:
